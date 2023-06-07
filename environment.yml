@@ -1,0 +1,18 @@
+channels:
+  - pyviz
+  - conda-forge
+  - defaults
+dependencies:
+  - python
+  - holoviews
+  - bokeh
+  - xarray
+  - dask
+  - jupyterlab
+  - intake-esm
+  - s3fs
+  - geoviews
+  - hvplot
+  - jupyter_bokeh
+  - cartopy
+  - dask-jobqueue
