@@ -1,18 +1,17 @@
 import holoviews as hv
 import geoviews as gv
-import numpy as np
 import panel as pn
 import param
 from datetime import datetime
-import pandas as pd
-import datetime as dt
-import cftime
 
 from dask.distributed import Client
 from holoviews.operation.datashader import rasterize
-from holoviews import opts
-import param
+from holoviews import opts, streams
 from panel.viewable import Viewer
+import geoviews.feature as gf
+import param
+from cartopy import crs
+from bokeh.models.formatters import PrintfTickFormatter
 
 import xarray as xr
 import hvplot.xarray
@@ -20,30 +19,33 @@ from pathlib import Path
 
 gv.extension('bokeh')
 hv.extension('bokeh')
-pn.extension('gridstack')
 
+# plot default style
+opts.defaults(
+    opts.Image(
+        global_extent=True, projection=crs.PlateCarree(),
+        aspect='equal', responsive='width'
+    )
+)
 
-DASK_SCHEDULER_ADDR = 'tcp://10.12.1.2:36391'
-NWORKERS = 4
-
-client = Client(DASK_SCHEDULER_ADDR)
-
-client.wait_for_workers(NWORKERS)
-
-# path where data is stored. Stored according to variable names.
 parent_dir = Path('/glade/work/pdas47/cesm-annual/')
-# print file names in the directory. Each file is the annual and member mean of that variable in the CESM-LENS2 dataset
 files = list(parent_dir.glob('*.nc'))
-
 print(*[f.name for f in files], sep=', ') 
 
 ds = xr.open_mfdataset(files, parallel=True)
-
-# convert datetimes from cftime.noleap to standard
 ds = ds.convert_calendar('standard')
 
 # rename variables as "long_name (unit)"
-ds = ds.rename({k:f"{ds[k].attrs['long_name']} ({ds[k].attrs.get('units', 'unitless')})" for k in sorted(list(ds.keys()), reverse=True)})
+ds = ds.rename({k:f"{ds[k].attrs['long_name']} ({ds[k].attrs.get('units', 'unitless')})" for k in sorted(list(ds.keys()), reverse=True)}).persist()
+
+std_parent_dir = Path('/glade/work/pdas47/cesm-annual/std_dev/')
+files = list(std_parent_dir.glob("*.nc"))
+
+std_ds = xr.open_mfdataset(files, parallel=True)
+std_ds = std_ds.convert_calendar('standard')
+
+# rename variables similar to the annual mean dataset
+std_ds = std_ds.rename({k:f"{std_ds[k].attrs['long_name']} ({std_ds[k].attrs.get('units', 'unitless')})" for k in sorted(list(std_ds.keys()), reverse=True)}).persist()
 
 min_year = ds.time.min().dt.year.item()
 max_year = ds.time.max().dt.year.item()
@@ -52,132 +54,264 @@ variables = list(sorted(ds.keys(), reverse=True))
 
 forcing_types = list(ds.coords['forcing_type'].values)
 
-clim_min = ds[variables[0]].sel(time=f'2015-01-01', method='nearest').sel(forcing_type='cmip6').min()
-clim_max = ds[variables[0]].sel(time=f'2015-01-01', method='nearest').sel(forcing_type='cmip6').max()
 
-args = dict(
-    ds = ds,
-    min_year = min_year,
-    max_year = max_year,
-    variables = variables,
-    forcing_types = forcing_types,
-    clim_min = clim_min,
-    clim_max = clim_max
-)
+
+class ColorbarControls(Viewer):
+    clim = param.Range(default=(0, 100), label="Colorbar Range")
+    width = param.Number(default=300)
+    clim_locked = param.Boolean(default=False)
+
+    _scientific_format_low_threshold = 0.01
+    _scientific_format_high_threshold = 9999
+
+    def __init__(self, **params):
+        self._start_input = pn.widgets.FloatInput()
+        self._end_input = pn.widgets.FloatInput(align='end')
+        self._clim_lock = pn.widgets.Checkbox(name='Lock controls')
+        super().__init__(**params)
+        self._layout = pn.Column(
+            pn.Row(self._start_input, self._end_input),
+            self._clim_lock
+        )
+        self._sync_widgets()
+
+    def __panel__(self):
+        return self._layout
+
+    @param.depends('clim', 'width', '_clim_lock.value', watch=True)
+    def _sync_widgets(self):
+        if self._clim_lock.value:
+            self.clim_locked = True
+            self._start_input.disabled = True
+            self._end_input.disabled = True
+        else:
+            self.clim_locked = False
+            self._start_input.disabled = False
+            self._end_input.disabled = False
+
+        self._start_input.name = self.name
+        self._start_input.value, self._end_input.value = self.clim
+        for i in [self._start_input, self._end_input]:
+            i.width = int(self.width * 0.9) // 2
+            i.margin = (5, 5)
+            if i.value < self._scientific_format_low_threshold or i.value > self._scientific_format_high_threshold:
+                i.format = PrintfTickFormatter(format="%.2e")
+            else:
+                i.format = '0.2f'
+
+    @param.depends('_start_input.value', '_end_input.value', watch=True)
+    def _sync_params(self):
+        self.clim = (self._start_input.value, self._end_input.value)
 
 
 class ClimateViewer(param.Parameterized):
+    # Dataset parameters
     variable = param.ObjectSelector(default=variables[0], objects=variables)
     forcing_type = param.ObjectSelector(default=forcing_types[0], objects=forcing_types)
-    year = param.Integer(default=2015, bounds=(min_year, max_year))   
+    year = param.Integer(default=2015, bounds=(min_year, max_year))
     
-    cmap = param.ObjectSelector(default='inferno', objects=['inferno', 'viridis', 'inferno_r', 'kb', 'coolwarm', 'coolwarm_r', 'Blues', 'Blues_r'])
-    clim_min = param.Number(default=0)
-    clim_max = param.Number(default=100)
-    clim_controls_ts = param.Boolean(default=False)
+    # time-series parameters
+    pointer = param.XYCoordinates((0, 0), precedence=-1)
+    
+    # Plotting parameters
+    cmap = param.ObjectSelector(label='Colormap', default='inferno', objects=['inferno', 'viridis', 'inferno_r', 'kb', 'coolwarm', 'coolwarm_r', 'Blues', 'Blues_r'])
+    cbar_controls = ColorbarControls(name='Colorbar Controls')
 
+    # Data parameters
+    data_subset = param.Parameter(default=hv.Dataset([]), precedence=-1)
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.data_subset = None
+        
+        # plot handles
         self.map_hv = None
-        self.map_with_marker_dmap = None
+        self._pointer_marker = None
         self.ts_hv = None
-        self._tap_screen = ds[variables[0]].isel(time=0).sel(forcing_type='cmip6').hvplot(x='lon', y='lat', geo=True, visible=False, colorbar=False).opts(min_width=300, frame_width=800)
-        self.stream = hv.streams.Tap(x=0, y=0, source=self._tap_screen)
-
-        self._get_data()
-
-    @param.depends('year', 'variable', 'forcing_type')
-    def _get_data(self):
-        self.data_subset = ds[self.variable].sel(time=f'{self.year}-01-01', method='nearest').sel(forcing_type=self.forcing_type)
-        return self.data_subset
-
-    def map_plot(self):
-        var_long_name = ds[self.variable].attrs['long_name']
-
-        if 'units' in ds[self.variable].attrs:
-            clabel = f'{var_long_name} ({ds[self.variable].attrs["units"]})'
-        else:
-            clabel = f'{var_long_name} (undefined units)'
+        self._year_marker = None
+        self._cbar = None
         
-        xr_plot = self.data_subset.hvplot(
-            x='lon', y='lat',
-            geo=True, coastline=True,
-            cmap=self.cmap, clabel=clabel, clim=(self.clim_min, self.clim_max)
-        )
+        # setup stream <-> pointer connection
+        self._stream = streams.Tap(x=0, y=0)
+        self._stream.add_subscriber(self._update_click)
         
-        self.map_hv = (self._tap_screen * xr_plot).opts(
-            opts.Image(
-                title=f"Average annual {var_long_name} on {self.year}",
-                xlabel="Longitude", ylabel="Latitude",
-                min_width=300, frame_width=800
-            )
-        )
-
-        return self.map_hv
-
-    @param.depends('year', 'cmap', 'forcing_type', 'variable', 'clim_min', 'clim_max')
-    def map_plot_dmap(self):
-        def _map_plot_dmap(x, y):
-            return (self.map_plot() * hv.Scatter((x, y)).opts(color='red', marker='x', size=10, min_width=300, frame_width=800))
-
-        self.map_with_marker_dmap = hv.DynamicMap(_map_plot_dmap, streams=[self.stream])
-        return self.map_with_marker_dmap
+        # Initialize map
+        self._get_map_data()
+        self._plot_map()
+        self._plot_pointer_marker()
+        self._style_map()
+        
+        # Initialize Time-series
+        self._get_ts_data()
+        self._plot_ts()
+        self._plot_year_marker()
+        self._style_ts()
     
-    @param.depends('year', 'variable', 'forcing_type', 'clim_min', 'clim_max', 'clim_controls_ts')
-    def ts_dmap(self):
-        def _ts_dmap(x, y):
-            if self.clim_controls_ts:
-                ts_plot = ds[self.variable].sel(lat=y, lon=x%360, method='nearest').hvplot(x='time', by='forcing_type').opts(ylim=(self.clim_min, self.clim_max))
-            else:
-                ts_plot = ds[self.variable].sel(lat=y, lon=x%360, method='nearest').hvplot(x='time', by='forcing_type')
-            return (ts_plot * hv.VLine(datetime(self.year, 1, 1))).opts(
-                opts.VLine(line_dash='dashed', line_width=2, line_color='k')
-            )
-        
-        self.ts_hv = hv.DynamicMap(_ts_dmap, streams=[self.stream])
-        return self.ts_hv
+    @param.depends('variable', 'forcing_type', 'year', watch=True)
+    def _get_map_data(self):
+        subset = ds[self.variable].sel(time=f'{self.year}-01-01', method='nearest').sel(forcing_type=self.forcing_type).rename({'lat': 'Latitude', 'lon': 'Longitude'})
+        self.data_subset = hv.Dataset(subset)
 
-viewer = ClimateViewer(name='Climate Viewer')
+    @param.depends('data_subset', watch=True)
+    def _plot_map(self):
+        plot = gv.Image(
+            data = self.data_subset,
+            kdims = ['Longitude', 'Latitude'],
+            vdims = [self.variable],
+            group = 'Map',
+            label = self.variable
+        )
+        self.map_hv = plot
+        clim_range = plot.range(self.variable)
+        if not self.cbar_controls.clim_locked:
+            self.cbar_controls.clim = clim_range
+    
+    @param.depends('pointer', watch=True)
+    def _plot_pointer_marker(self):
+        plot = hv.Scatter(
+            (self.pointer[0], self.pointer[1])
+        ).opts(color='red', marker='x', size=10)
+        self._pointer_marker = plot
+    
+    @param.depends('_plot_map', 'cmap', 'cbar_controls.clim', watch=True)
+    def _style_map(self):
+        styled_plot = self.map_hv.opts(
+            cmap=self.cmap,
+            title=f"Average {self.variable} in {self.year}",
+            clim=(self.cbar_controls.clim[0], self.cbar_controls.clim[1])
+        )
+        self.map_hv = styled_plot
+        self._update_source()
+    
+    def _update_source(self):
+        self._stream.source = self.map_hv
+    
+    def _update_click(self, x, y):
+        self.pointer = (x, y)
+    
+    @param.depends('variable', 'forcing_type', 'pointer', watch=True)
+    def _get_ts_data(self):
+        ts_mean_subset = ds[self.variable].sel(lat=self.pointer[1], lon=self.pointer[0]%360, method='nearest').sel(forcing_type=self.forcing_type).rename({'lat': 'Latitude', 'lon': 'Longitude'})
+        self.ts_mean_subset = hv.Dataset(ts_mean_subset)
+        ts_stddev_subset = std_ds[self.variable].sel(lat=self.pointer[1], lon=self.pointer[0]%360, method='nearest').sel(forcing_type=self.forcing_type).rename({'lat': 'Latitude', 'lon': 'Longitude'})
+        self.ts_upper_bound = hv.Dataset(ts_mean_subset + ts_stddev_subset)
+        self.ts_lower_bound = hv.Dataset(ts_mean_subset - ts_stddev_subset)
+    
+    @param.depends('year', watch=True)
+    def _plot_year_marker(self):
+        self._year_marker = hv.VLine(
+            datetime(self.year, 1, 1)
+        ).opts(
+            line_dash = 'dashed',
+            line_width = 2,
+            line_color = 'grey'
+        )
+    
+    @param.depends('pointer', 'variable', '_get_ts_data', watch=True)
+    def _plot_ts(self):
+        ts_mean = hv.Curve(
+            data = self.ts_mean_subset,
+            kdims = ['time'],
+            vdims = [self.variable]
+        )
+        ts_bounds = hv.Area(
+            data = (
+                self.ts_lower_bound['time'], 
+                self.ts_upper_bound[self.variable],
+                self.ts_lower_bound[self.variable], 
+            ),
+            kdims = ['time'],
+            vdims = ['upper_bound', 'lower_bound']
+        )
+        self.ts_hv = ts_mean * ts_bounds
+    
+    @param.depends('_plot_ts', watch=True)
+    def _style_ts(self):
+        pointer_x = f'{self.pointer[0]:.2f}°E' if self.pointer[0] >= 0 else f'{self.pointer[0]*-1:.2f}°W'
+        pointer_y = f'{self.pointer[1]:.2f}°N' if self.pointer[1] >= 0 else f'{self.pointer[1]*-1:.2f}°S'
+        self.ts_hv = self.ts_hv.opts(
+            opts.Curve(show_legend=True, show_grid=True, responsive='width', height=300),
+            opts.Area(alpha=0.3, title=f'{self.variable} at {pointer_x}, {pointer_y}'),
+        )
+    
+    @param.depends('_plot_map', '_style_map', '_plot_pointer_marker')
+    def view_map(self):
+        return self.map_hv * gf.coastline * self._pointer_marker
 
-variable_select = pn.Param(viewer.param.variable, widgets={'variable': {'width': 250, 'width_policy': 'fit'}})
-forcing_type_select = pn.Param(viewer.param.forcing_type, widgets={'forcing_type': {'width': 100, 'width_policy': 'fit'}})
-cmap_select = pn.Param(viewer.param.cmap, widgets={'forcing_type': {'width': 100, 'width_policy': 'fit'}})
-year_slide = pn.Param(viewer.param.year, widgets={'year': {'width': 250, 'width_policy': 'fit'}})
-clim_min_inp = pn.Param(viewer.param.clim_min, widgets={'clim_min_inp': {'width': 100, 'width_policy': 'min'}})
-clim_max_inp = pn.Param(viewer.param.clim_max, widgets={'clim_max_inp': {'width': 100, 'width_policy': 'min'}})
-clim_ts_btn = pn.Param(viewer.param.clim_controls_ts)
+    @param.depends('_plot_ts', '_style_ts', '_plot_year_marker')
+    def view_ts(self):
+        return self.ts_hv * self._year_marker
+    
+    def _debug(self):
+        return pn.pane.HTML(self.ts_lower_bound.data)
+    
+    # Layout
+    @property
+    def template(self):
+        variable_select = pn.Param(
+            self.param.variable,
+            widgets={'variable': {'width_policy': 'max', 'width': 100}}, 
+            width_policy='fit', min_width=100, max_width=600,
+            width=300, margin=(5, 5)
+        )
+        forcing_type_select = pn.Param(
+            self.param.forcing_type, 
+            widgets={'forcing_type': {'width_policy': 'max', 'width': 100}},
+            width_policy='fit', min_width=100, max_width=600,
+            width=300, margin=(5, 5)
+        )
+        year_slide = pn.Param(
+            self.param.year, 
+            widgets={'year': {'type': pn.widgets.IntSlider, 'width_policy': 'max', 'width': 100, 'height': 30}},
+            width_policy='fit', min_width=100, max_width=600,
+            width=300, margin=(5, 5)
+        )
 
-dataset_controls = pn.Card(
-    pn.pane.Markdown('## Dataset controls'),
-    variable_select,
-    year_slide,
-    forcing_type_select,
-    title='Dataset controls',
-    sizing_mode='stretch_both'
-)
+        cmap_select = pn.Param(
+            self.param.cmap, 
+            widgets={'cmap': {'width_policy': 'max', 'width': 100}},
+            width_policy='fit', min_width=100, max_width=600,
+            width=300, margin=(5, 5)
+        )
 
-plot_controls = pn.Card(
-    pn.pane.Markdown('## Plot controls'),
-    cmap_select,
-    clim_max_inp,
-    clim_min_inp, 
-    clim_ts_btn,
-    title='Plot controls',
-    sizing_mode='stretch_both'
-)
+        cbar_range = self.cbar_controls
 
-# Instantiate the template with widgets displayed in the sidebar
-template = pn.template.BootstrapTemplate(
-    title='CESM-2 Dashboard',
-    sidebar=[dataset_controls, plot_controls],
-)
-# Append a layout to the main area, to demonstrate the list-like API
-template.main.append(
-    pn.Column(
-        viewer.map_plot_dmap,
-        viewer.ts_dmap,
-    )
-)
+        dataset_controls = pn.Card(
+            variable_select,
+            year_slide,
+            forcing_type_select,
+            title='Dataset controls',
+            width_policy='fit'
+        )
 
+        plot_controls = pn.Card(
+            cmap_select,
+            cbar_range,
+            title='Plot controls',
+            width_policy='fit'
+        )
+
+        # Instantiate the template with widgets displayed in the sidebar
+        template = pn.template.BootstrapTemplate(
+            title='CESM-2 Dashboard',
+            sidebar=[dataset_controls, plot_controls],
+            main_max_width='1000px',
+            sidebar_width=340
+        )
+
+        content = pn.Column(
+            self.view_map,
+            self.view_ts,
+            align='center'
+        )
+
+        # Append a layout to the main area, to demonstrate the list-like API
+        template.main.append(
+            content
+        )
+
+        return template
+    
+climate_viewer = ClimateViewer()
+
+template = climate_viewer.template
 template.servable()
