@@ -19,3 +19,18 @@ This repository hosts notebooks and code written to visualize the [CESM-LENS2](h
 4. Start a jupyterlab session and run the notebooks. Start jupyterlab session:
 
 `jupyter lab`
+
+
+## Serve the app
+
+1. Start a dask scheduler
+
+`dask scheduler --host localhost --port 8786`
+
+2. Start dask workers - 2 workers, with 2GB memory each
+
+`dask worker --host localhost --nworkers 2 --memory-limit '2GB' localhost:8786`
+
+3. Start panel server
+
+`panel serve src/cesm-2-dashboard/app.py --allow-websocket-origin="*" --autoreload`
