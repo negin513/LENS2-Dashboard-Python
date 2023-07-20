@@ -1,3 +1,4 @@
+import numpy as np
 import holoviews as hv
 import geoviews as gv
 import panel as pn
@@ -180,7 +181,8 @@ class ClimateViewer(param.Parameterized):
         styled_plot = self.map_hv.opts(
             cmap=self.cmap,
             title=f"Average {self.variable} in {self.year}",
-            clim=(self.cbar_controls.clim[0], self.cbar_controls.clim[1])
+            clim=(self.cbar_controls.clim[0], self.cbar_controls.clim[1]),
+            colorbar=True, clabel=f'{self.variable}'
         )
         self.map_hv = styled_plot
         self._update_source()
@@ -261,7 +263,6 @@ class ClimateViewer(param.Parameterized):
                     ylim=(None, None),
                 )
             )
-
     
     @param.depends('_plot_map', '_style_map', '_plot_pointer_marker')
     def view_map(self):
@@ -291,7 +292,7 @@ class ClimateViewer(param.Parameterized):
         )
         year_slide = pn.Param(
             self.param.year, 
-            widgets={'year': {'type': pn.widgets.IntSlider, 'width_policy': 'max', 'width': 100, 'height': 30}},
+            widgets={'year': {'type': pn.widgets.IntSlider, 'width_policy': 'max', 'width': 100, 'height': 30, 'throttled': True}},
             width_policy='fit', min_width=100, max_width=600,
             width=300, margin=(5, 5)
         )
