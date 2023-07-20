@@ -28,24 +28,26 @@ opts.defaults(
     )
 )
 
-parent_dir = Path('/glade/work/pdas47/cesm-annual/')
-files = list(parent_dir.glob('*.nc'))
+parent_dir = Path('data/')
+files = list(parent_dir.glob('*S.nc'))
 print(*[f.name for f in files], sep=', ') 
+
 
 ds = xr.open_mfdataset(files, parallel=True)
 ds = ds.convert_calendar('standard')
 
 # rename variables as "long_name (unit)"
-ds = ds.rename({k:f"{ds[k].attrs['long_name']} ({ds[k].attrs.get('units', 'unitless')})" for k in sorted(list(ds.keys()), reverse=True)}).persist()
+ds = ds.rename({k:f"{ds[k].attrs['long_name']} ({ds[k].attrs.get('units', 'unitless')})" for k in sorted(list(ds.keys()), reverse=True)})#.persist()
 
-std_parent_dir = Path('/glade/work/pdas47/cesm-annual/std_dev/')
-files = list(std_parent_dir.glob("*.nc"))
+std_parent_dir = Path('data/std_dev/')
+files = list(std_parent_dir.glob("*S.nc"))
+
 
 std_ds = xr.open_mfdataset(files, parallel=True)
 std_ds = std_ds.convert_calendar('standard')
 
 # rename variables similar to the annual mean dataset
-std_ds = std_ds.rename({k:f"{std_ds[k].attrs['long_name']} ({std_ds[k].attrs.get('units', 'unitless')})" for k in sorted(list(std_ds.keys()), reverse=True)}).persist()
+std_ds = std_ds.rename({k:f"{std_ds[k].attrs['long_name']} ({std_ds[k].attrs.get('units', 'unitless')})" for k in sorted(list(std_ds.keys()), reverse=True)})#.persist()
 
 min_year = ds.time.min().dt.year.item()
 max_year = ds.time.max().dt.year.item()
@@ -55,11 +57,11 @@ variables = list(sorted(ds.keys(), reverse=True))
 forcing_types = list(ds.coords['forcing_type'].values)
 
 
-
 class ColorbarControls(Viewer):
     clim = param.Range(default=(0, 100), label="Colorbar Range")
     width = param.Number(default=300)
     clim_locked = param.Boolean(default=False)
+    clim_connected_to_ts = param.Boolean(default=False)
 
     _scientific_format_low_threshold = 0.01
     _scientific_format_high_threshold = 9999
@@ -68,26 +70,24 @@ class ColorbarControls(Viewer):
         self._start_input = pn.widgets.FloatInput()
         self._end_input = pn.widgets.FloatInput(align='end')
         self._clim_lock = pn.widgets.Checkbox(name='Lock controls')
+        self._clim_connected_to_ts_chkbx = pn.widgets.Checkbox(name='Set CLim range = Y-axis of time-series')
+        
         super().__init__(**params)
         self._layout = pn.Column(
             pn.Row(self._start_input, self._end_input),
-            self._clim_lock
+            self._clim_lock,
+            self._clim_connected_to_ts_chkbx
         )
         self._sync_widgets()
 
     def __panel__(self):
         return self._layout
 
-    @param.depends('clim', 'width', '_clim_lock.value', watch=True)
+    @param.depends('clim', '_clim_lock.value', '_clim_connected_to_ts_chkbx.value', watch=True)
     def _sync_widgets(self):
-        if self._clim_lock.value:
-            self.clim_locked = True
-            self._start_input.disabled = True
-            self._end_input.disabled = True
-        else:
-            self.clim_locked = False
-            self._start_input.disabled = False
-            self._end_input.disabled = False
+        self.clim_locked = self._clim_lock.value
+        self._start_input.disabled = self._clim_lock.value
+        self._end_input.disabled = self._clim_lock.value
 
         self._start_input.name = self.name
         self._start_input.value, self._end_input.value = self.clim
@@ -98,6 +98,9 @@ class ColorbarControls(Viewer):
                 i.format = PrintfTickFormatter(format="%.2e")
             else:
                 i.format = '0.2f'
+
+        self.clim_connected_to_ts = self._clim_connected_to_ts_chkbx.value
+        
 
     @param.depends('_start_input.value', '_end_input.value', watch=True)
     def _sync_params(self):
@@ -224,14 +227,41 @@ class ClimateViewer(param.Parameterized):
         )
         self.ts_hv = ts_mean * ts_bounds
     
-    @param.depends('_plot_ts', watch=True)
+    @param.depends('_plot_ts', 'cbar_controls.clim_connected_to_ts', 'cbar_controls.clim', watch=True)
     def _style_ts(self):
         pointer_x = f'{self.pointer[0]:.2f}°E' if self.pointer[0] >= 0 else f'{self.pointer[0]*-1:.2f}°W'
         pointer_y = f'{self.pointer[1]:.2f}°N' if self.pointer[1] >= 0 else f'{self.pointer[1]*-1:.2f}°S'
+
+        if self.ts_hv is None:
+            return
+
         self.ts_hv = self.ts_hv.opts(
-            opts.Curve(show_legend=True, show_grid=True, responsive='width', height=300),
-            opts.Area(alpha=0.3, title=f'{self.variable} at {pointer_x}, {pointer_y}'),
+            opts.Curve(
+                show_legend=True, 
+                show_grid=True, 
+                responsive='width', 
+                height=300, 
+                title=f'{self.variable} at {pointer_x}, {pointer_y}', 
+                xlabel='Year'
+            ),
+            opts.Area(
+                alpha=0.3, 
+            ),
         )
+
+        if self.cbar_controls.clim_connected_to_ts:
+            self.ts_hv = self.ts_hv.opts(
+                opts.Curve(
+                    ylim=(self.cbar_controls.clim[0], self.cbar_controls.clim[1]),
+                )
+            )
+        else:
+            self.ts_hv = self.ts_hv.opts(
+                opts.Curve(
+                    ylim=(None, None),
+                )
+            )
+
     
     @param.depends('_plot_map', '_style_map', '_plot_pointer_marker')
     def view_map(self):
