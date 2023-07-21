@@ -29,6 +29,13 @@ opts.defaults(
     )
 )
 
+RUNNING_ON_CASPER = True
+
+if RUNNING_ON_CASPER:
+    DASK_CLUSTER = 'tcp://10.12.1.2:33923'
+    client = Client(DASK_CLUSTER)
+    print(f'Client connected: {client}; Dashboard: {client.dashboard_link}')
+
 parent_dir = Path('data/')
 files = list(parent_dir.glob('*S.nc'))
 print(*[f.name for f in files], sep=', ') 
@@ -36,9 +43,14 @@ print(*[f.name for f in files], sep=', ')
 
 ds = xr.open_mfdataset(files, parallel=True)
 ds = ds.convert_calendar('standard')
+ds = ds.assign_coords(lon=(((ds.lon + 180) % 360) - 180))
+ds = ds.roll(lon=int(len(ds['lon']) / 2), roll_coords=True)
 
 # rename variables as "long_name (unit)"
-ds = ds.rename({k:f"{ds[k].attrs['long_name']} ({ds[k].attrs.get('units', 'unitless')})" for k in sorted(list(ds.keys()), reverse=True)})#.persist()
+if RUNNING_ON_CASPER:
+    ds = ds.rename({k:f"{ds[k].attrs['long_name']} ({ds[k].attrs.get('units', 'unitless')})" for k in sorted(list(ds.keys()), reverse=True)}).persist()
+else:
+    ds = ds.rename({k:f"{ds[k].attrs['long_name']} ({ds[k].attrs.get('units', 'unitless')})" for k in sorted(list(ds.keys()), reverse=True)})
 
 std_parent_dir = Path('data/std_dev/')
 files = list(std_parent_dir.glob("*S.nc"))
@@ -46,9 +58,14 @@ files = list(std_parent_dir.glob("*S.nc"))
 
 std_ds = xr.open_mfdataset(files, parallel=True)
 std_ds = std_ds.convert_calendar('standard')
+std_ds = std_ds.assign_coords(lon=(((std_ds.lon + 180) % 360) - 180))
+std_ds = std_ds.roll(lon=int(len(std_ds['lon']) / 2), roll_coords=True)
 
 # rename variables similar to the annual mean dataset
-std_ds = std_ds.rename({k:f"{std_ds[k].attrs['long_name']} ({std_ds[k].attrs.get('units', 'unitless')})" for k in sorted(list(std_ds.keys()), reverse=True)})#.persist()
+if RUNNING_ON_CASPER:
+    std_ds = std_ds.rename({k:f"{std_ds[k].attrs['long_name']} ({std_ds[k].attrs.get('units', 'unitless')})" for k in sorted(list(std_ds.keys()), reverse=True)}).persist()
+else:
+    std_ds = std_ds.rename({k:f"{std_ds[k].attrs['long_name']} ({std_ds[k].attrs.get('units', 'unitless')})" for k in sorted(list(std_ds.keys()), reverse=True)})
 
 min_year = ds.time.min().dt.year.item()
 max_year = ds.time.max().dt.year.item()
@@ -123,12 +140,14 @@ class ClimateViewer(param.Parameterized):
 
     # Data parameters
     data_subset = param.Parameter(default=hv.Dataset([]), precedence=-1)
+    selected = param.Parameter(default=hv.Dataset([]), precedence=-1)
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
         # plot handles
         self.map_hv = None
+        self.selected_hv = None
         self._pointer_marker = None
         self.ts_hv = None
         self._year_marker = None
@@ -137,6 +156,10 @@ class ClimateViewer(param.Parameterized):
         # setup stream <-> pointer connection
         self._stream = streams.Tap(x=0, y=0)
         self._stream.add_subscriber(self._update_click)
+
+        # selection stream
+        self._selection = streams.BoundsXY(bounds=(0, 0, 0, 0))
+        self._selection.add_subscriber(self._get_selection_data)
         
         # Initialize map
         self._get_map_data()
@@ -150,12 +173,28 @@ class ClimateViewer(param.Parameterized):
         self._plot_year_marker()
         self._style_ts()
     
+    ## DATA
     @param.depends('variable', 'forcing_type', 'year', watch=True)
     def _get_map_data(self):
         subset = ds[self.variable].sel(time=f'{self.year}-01-01', method='nearest').sel(forcing_type=self.forcing_type).rename({'lat': 'Latitude', 'lon': 'Longitude'})
         self.data_subset = hv.Dataset(subset)
 
-    @param.depends('data_subset', watch=True)
+    def _get_selection_data(self, bounds):
+        minx, miny, maxx, maxy = bounds
+        self.selected = self.data_subset.select(Longitude=(minx, maxx), Latitude=(miny, maxy))
+
+    @param.depends('variable', 'forcing_type', 'pointer', watch=True)
+    def _get_ts_data(self):
+        # ts_mean_subset = ds[self.variable].sel(lat=self.pointer[1], lon=self.pointer[0]%360, method='nearest').sel(forcing_type=self.forcing_type).rename({'lat': 'Latitude', 'lon': 'Longitude'})
+        ts_mean_subset = ds[self.variable].sel(lat=self.pointer[1], lon=self.pointer[0], method='nearest').sel(forcing_type=self.forcing_type).rename({'lat': 'Latitude', 'lon': 'Longitude'})
+        self.ts_mean_subset = hv.Dataset(ts_mean_subset)
+        # ts_stddev_subset = std_ds[self.variable].sel(lat=self.pointer[1], lon=self.pointer[0]%360, method='nearest').sel(forcing_type=self.forcing_type).rename({'lat': 'Latitude', 'lon': 'Longitude'})
+        ts_stddev_subset = std_ds[self.variable].sel(lat=self.pointer[1], lon=self.pointer[0], method='nearest').sel(forcing_type=self.forcing_type).rename({'lat': 'Latitude', 'lon': 'Longitude'})
+        self.ts_upper_bound = hv.Dataset(ts_mean_subset + ts_stddev_subset)
+        self.ts_lower_bound = hv.Dataset(ts_mean_subset - ts_stddev_subset)
+    
+    ## PLOT
+    @param.depends('data_subset', 'selected', watch=True)
     def _plot_map(self):
         plot = gv.Image(
             data = self.data_subset,
@@ -168,6 +207,17 @@ class ClimateViewer(param.Parameterized):
         clim_range = plot.range(self.variable)
         if not self.cbar_controls.clim_locked:
             self.cbar_controls.clim = clim_range
+
+        if not self._selection.bounds == (0, 0, 0, 0):
+            print("plotting selected")
+            plot_selection = gv.Image(
+                data = self.selected,
+                kdims = ['Longitude', 'Latitude'],
+                vdims = [self.variable],
+                group = 'Map',
+                label = 'Selection'
+            )
+            self.selected_hv = plot_selection
     
     @param.depends('pointer', watch=True)
     def _plot_pointer_marker(self):
@@ -175,41 +225,6 @@ class ClimateViewer(param.Parameterized):
             (self.pointer[0], self.pointer[1])
         ).opts(color='red', marker='x', size=10)
         self._pointer_marker = plot
-    
-    @param.depends('_plot_map', 'cmap', 'cbar_controls.clim', watch=True)
-    def _style_map(self):
-        styled_plot = self.map_hv.opts(
-            cmap=self.cmap,
-            title=f"Average {self.variable} in {self.year}",
-            clim=(self.cbar_controls.clim[0], self.cbar_controls.clim[1]),
-            colorbar=True, clabel=f'{self.variable}'
-        )
-        self.map_hv = styled_plot
-        self._update_source()
-    
-    def _update_source(self):
-        self._stream.source = self.map_hv
-    
-    def _update_click(self, x, y):
-        self.pointer = (x, y)
-    
-    @param.depends('variable', 'forcing_type', 'pointer', watch=True)
-    def _get_ts_data(self):
-        ts_mean_subset = ds[self.variable].sel(lat=self.pointer[1], lon=self.pointer[0]%360, method='nearest').sel(forcing_type=self.forcing_type).rename({'lat': 'Latitude', 'lon': 'Longitude'})
-        self.ts_mean_subset = hv.Dataset(ts_mean_subset)
-        ts_stddev_subset = std_ds[self.variable].sel(lat=self.pointer[1], lon=self.pointer[0]%360, method='nearest').sel(forcing_type=self.forcing_type).rename({'lat': 'Latitude', 'lon': 'Longitude'})
-        self.ts_upper_bound = hv.Dataset(ts_mean_subset + ts_stddev_subset)
-        self.ts_lower_bound = hv.Dataset(ts_mean_subset - ts_stddev_subset)
-    
-    @param.depends('year', watch=True)
-    def _plot_year_marker(self):
-        self._year_marker = hv.VLine(
-            datetime(self.year, 1, 1)
-        ).opts(
-            line_dash = 'dashed',
-            line_width = 2,
-            line_color = 'grey'
-        )
     
     @param.depends('pointer', 'variable', '_get_ts_data', watch=True)
     def _plot_ts(self):
@@ -230,6 +245,42 @@ class ClimateViewer(param.Parameterized):
             label=f'± 1 std. dev.'
         )
         self.ts_hv = ts_mean * ts_bounds
+    
+    @param.depends('year', watch=True)
+    def _plot_year_marker(self):
+        self._year_marker = hv.VLine(
+            datetime(self.year, 1, 1)
+        ).opts(
+            line_dash = 'dashed',
+            line_width = 2,
+            line_color = 'grey'
+        )
+    
+    ## STYLE
+    @param.depends('_plot_map', 'cmap', 'cbar_controls.clim', watch=True)
+    def _style_map(self):
+        if not self._selection.bounds == (0, 0, 0, 0):
+            alpha = 0.2
+
+            styled_selection = self.selected_hv.opts(
+                cmap=self.cmap,
+                clim=(self.cbar_controls.clim[0], self.cbar_controls.clim[1]),
+            )
+            self.selected_hv = styled_selection
+
+        else:
+            alpha = 1
+
+        styled_map = self.map_hv.opts(
+            cmap=self.cmap,
+            title=f"Average {self.variable} in {self.year}",
+            tools=['box_select', 'lasso_select', 'tap'],
+            alpha=alpha,
+            colorbar=True, clabel=f'{self.variable}'
+        )
+        self.map_hv = styled_map
+
+        self._update_source()
     
     @param.depends('_plot_ts', 'cbar_controls.clim_connected_to_ts', 'cbar_controls.clim', watch=True)
     def _style_ts(self):
@@ -266,18 +317,30 @@ class ClimateViewer(param.Parameterized):
                 )
             )
     
+    ## UTILITIES
+    def _update_source(self):
+        self._stream.source = self.map_hv
+        self._selection.source = self.map_hv
+    
+    def _update_click(self, x, y):
+        self.pointer = (x, y)
+    
+    ## DASHBOARD PLOT ELEMENTS
     @param.depends('_plot_map', '_style_map', '_plot_pointer_marker')
     def view_map(self):
-        return self.map_hv * gf.coastline * self._pointer_marker
+        if not self._selection.bounds == (0, 0, 0, 0):
+            return self.map_hv * self.selected_hv * gf.coastline * self._pointer_marker
+        else:
+            return self.map_hv * gf.coastline * self._pointer_marker
 
     @param.depends('_plot_ts', '_style_ts', '_plot_year_marker')
     def view_ts(self):
-        return self.ts_hv * self._year_marker
+        return pn.Card(self.ts_hv * self._year_marker)
     
     def _debug(self):
         return pn.pane.HTML(self.ts_lower_bound.data)
     
-    # Layout
+    # LAYOUT
     @property
     def template(self):
         variable_select = pn.Param(
