@@ -216,7 +216,8 @@ class ClimateViewer(param.Parameterized):
         ts_mean = hv.Curve(
             data = self.ts_mean_subset,
             kdims = ['time'],
-            vdims = [self.variable]
+            vdims = [self.variable],
+            label=f'Mean {self.variable}'
         )
         ts_bounds = hv.Area(
             data = (
@@ -225,7 +226,8 @@ class ClimateViewer(param.Parameterized):
                 self.ts_lower_bound[self.variable], 
             ),
             kdims = ['time'],
-            vdims = ['upper_bound', 'lower_bound']
+            vdims = ['upper_bound', 'lower_bound'],
+            label=f'± 1 std. dev.'
         )
         self.ts_hv = ts_mean * ts_bounds
     
@@ -323,7 +325,7 @@ class ClimateViewer(param.Parameterized):
 
         # Instantiate the template with widgets displayed in the sidebar
         template = pn.template.BootstrapTemplate(
-            title='CESM-2 Dashboard',
+            title='CESM2 Large Ensemble Community Project (LENS2) Dashboard',
             sidebar=[dataset_controls, plot_controls],
             main_max_width='1000px',
             sidebar_width=340
