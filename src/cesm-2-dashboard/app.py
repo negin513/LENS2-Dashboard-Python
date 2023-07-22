@@ -6,6 +6,7 @@ import param
 from datetime import datetime
 
 from dask.distributed import Client
+import dask
 from holoviews.operation.datashader import rasterize
 from holoviews import opts, streams
 from panel.viewable import Viewer
@@ -32,7 +33,7 @@ opts.defaults(
 RUNNING_ON_CASPER = True
 
 if RUNNING_ON_CASPER:
-    DASK_CLUSTER = 'tcp://10.12.1.2:33923'
+    DASK_CLUSTER = 'tcp://10.12.1.2:41777'
     client = Client(DASK_CLUSTER)
     print(f'Client connected: {client}; Dashboard: {client.dashboard_link}')
 
@@ -147,7 +148,8 @@ class ClimateViewer(param.Parameterized):
         
         # plot handles
         self.map_hv = None
-        self.selected_hv = None
+        self.selection_map_hv = None
+        self.selection_ts_hv = None
         self._pointer_marker = None
         self.ts_hv = None
         self._year_marker = None
@@ -178,20 +180,18 @@ class ClimateViewer(param.Parameterized):
     def _get_map_data(self):
         subset = ds[self.variable].sel(time=f'{self.year}-01-01', method='nearest').sel(forcing_type=self.forcing_type).rename({'lat': 'Latitude', 'lon': 'Longitude'})
         self.data_subset = hv.Dataset(subset)
+    
+    @param.depends('variable', 'forcing_type', 'pointer', watch=True)
+    def _get_ts_data(self):
+        ts_mean_subset = ds[self.variable].sel(lat=self.pointer[1], lon=self.pointer[0], method='nearest').sel(forcing_type=self.forcing_type).rename({'lat': 'Latitude', 'lon': 'Longitude'})
+        self.ts_mean_subset = hv.Dataset(ts_mean_subset)
+        ts_stddev_subset = std_ds[self.variable].sel(lat=self.pointer[1], lon=self.pointer[0], method='nearest').sel(forcing_type=self.forcing_type).rename({'lat': 'Latitude', 'lon': 'Longitude'})
+        self.ts_upper_bound = hv.Dataset(ts_mean_subset + ts_stddev_subset)
+        self.ts_lower_bound = hv.Dataset(ts_mean_subset - ts_stddev_subset)
 
     def _get_selection_data(self, bounds):
         minx, miny, maxx, maxy = bounds
         self.selected = self.data_subset.select(Longitude=(minx, maxx), Latitude=(miny, maxy))
-
-    @param.depends('variable', 'forcing_type', 'pointer', watch=True)
-    def _get_ts_data(self):
-        # ts_mean_subset = ds[self.variable].sel(lat=self.pointer[1], lon=self.pointer[0]%360, method='nearest').sel(forcing_type=self.forcing_type).rename({'lat': 'Latitude', 'lon': 'Longitude'})
-        ts_mean_subset = ds[self.variable].sel(lat=self.pointer[1], lon=self.pointer[0], method='nearest').sel(forcing_type=self.forcing_type).rename({'lat': 'Latitude', 'lon': 'Longitude'})
-        self.ts_mean_subset = hv.Dataset(ts_mean_subset)
-        # ts_stddev_subset = std_ds[self.variable].sel(lat=self.pointer[1], lon=self.pointer[0]%360, method='nearest').sel(forcing_type=self.forcing_type).rename({'lat': 'Latitude', 'lon': 'Longitude'})
-        ts_stddev_subset = std_ds[self.variable].sel(lat=self.pointer[1], lon=self.pointer[0], method='nearest').sel(forcing_type=self.forcing_type).rename({'lat': 'Latitude', 'lon': 'Longitude'})
-        self.ts_upper_bound = hv.Dataset(ts_mean_subset + ts_stddev_subset)
-        self.ts_lower_bound = hv.Dataset(ts_mean_subset - ts_stddev_subset)
     
     ## PLOT
     @param.depends('data_subset', 'selected', watch=True)
@@ -217,7 +217,7 @@ class ClimateViewer(param.Parameterized):
                 group = 'Map',
                 label = 'Selection'
             )
-            self.selected_hv = plot_selection
+            self.selection_map_hv = plot_selection
     
     @param.depends('pointer', watch=True)
     def _plot_pointer_marker(self):
@@ -245,7 +245,7 @@ class ClimateViewer(param.Parameterized):
             label=f'± 1 std. dev.'
         )
         self.ts_hv = ts_mean * ts_bounds
-    
+
     @param.depends('year', watch=True)
     def _plot_year_marker(self):
         self._year_marker = hv.VLine(
@@ -256,17 +256,31 @@ class ClimateViewer(param.Parameterized):
             line_color = 'grey'
         )
     
+    @param.depends('selected', watch=True)
+    def _plot_region_ts(self):
+        region_mean = ds[self.variable].sel(
+            lon=slice(self._selection.bounds[0], self._selection.bounds[2]),
+            lat=slice(self._selection.bounds[1], self._selection.bounds[3])
+        ).mean(dim=['lat', 'lon', 'forcing_type'])
+        region_ts_mean = hv.Curve(
+            data = region_mean,
+            kdims = ['time'],
+            vdims = [self.variable],
+            label=f'Region mean {self.variable}'
+        )
+        self.selection_ts_hv = region_ts_mean
+
     ## STYLE
     @param.depends('_plot_map', 'cmap', 'cbar_controls.clim', watch=True)
     def _style_map(self):
         if not self._selection.bounds == (0, 0, 0, 0):
             alpha = 0.2
 
-            styled_selection = self.selected_hv.opts(
+            styled_selection = self.selection_map_hv.opts(
                 cmap=self.cmap,
                 clim=(self.cbar_controls.clim[0], self.cbar_controls.clim[1]),
             )
-            self.selected_hv = styled_selection
+            self.selection_map_hv = styled_selection
 
         else:
             alpha = 1
@@ -329,14 +343,17 @@ class ClimateViewer(param.Parameterized):
     @param.depends('_plot_map', '_style_map', '_plot_pointer_marker')
     def view_map(self):
         if not self._selection.bounds == (0, 0, 0, 0):
-            return self.map_hv * self.selected_hv * gf.coastline * self._pointer_marker
+            return self.map_hv * self.selection_map_hv * gf.coastline * self._pointer_marker
         else:
             return self.map_hv * gf.coastline * self._pointer_marker
 
-    @param.depends('_plot_ts', '_style_ts', '_plot_year_marker')
+    @param.depends('_plot_ts', '_plot_year_marker', '_plot_region_ts')
     def view_ts(self):
-        return pn.Card(self.ts_hv * self._year_marker)
-    
+        if not self._selection.bounds == (0, 0, 0, 0):
+            return self.ts_hv * self.selection_ts_hv * self._year_marker
+        else:
+            return self.ts_hv * self._year_marker
+        
     def _debug(self):
         return pn.pane.HTML(self.ts_lower_bound.data)
     
@@ -397,6 +414,7 @@ class ClimateViewer(param.Parameterized):
         content = pn.Column(
             self.view_map,
             self.view_ts,
+            # self.view_selection_ts,
             align='center'
         )
 
