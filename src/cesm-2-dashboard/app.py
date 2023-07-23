@@ -25,7 +25,7 @@ hv.extension('bokeh')
 # plot default style
 opts.defaults(
     opts.Image(
-        global_extent=True, projection=crs.PlateCarree(),
+        global_extent=False, projection=crs.PlateCarree(),
         aspect='equal', responsive='width'
     )
 )
@@ -33,7 +33,7 @@ opts.defaults(
 RUNNING_ON_CASPER = True
 
 if RUNNING_ON_CASPER:
-    DASK_CLUSTER = 'tcp://10.12.1.2:41777'
+    DASK_CLUSTER = 'tcp://10.12.1.2:39886'
     client = Client(DASK_CLUSTER)
     print(f'Client connected: {client}; Dashboard: {client.dashboard_link}')
 
@@ -142,6 +142,8 @@ class ClimateViewer(param.Parameterized):
     # Data parameters
     data_subset = param.Parameter(default=hv.Dataset([]), precedence=-1)
     selected = param.Parameter(default=hv.Dataset([]), precedence=-1)
+    x_range = param.Range(default=(0, 0), softbounds=(-180, 180))
+    y_range = param.Range(default=(0, 0), softbounds=(-90, 90))
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -162,6 +164,10 @@ class ClimateViewer(param.Parameterized):
         # selection stream
         self._selection = streams.BoundsXY(bounds=(0, 0, 0, 0))
         self._selection.add_subscriber(self._get_selection_data)
+
+        # zoom stream
+        self._zoom = streams.RangeXY(x_range=(None, None), y_range=(None, None))
+        self._zoom.add_subscriber(self._update_ranges)
         
         # Initialize map
         self._get_map_data()
@@ -178,8 +184,13 @@ class ClimateViewer(param.Parameterized):
     ## DATA
     @param.depends('variable', 'forcing_type', 'year', watch=True)
     def _get_map_data(self):
-        subset = ds[self.variable].sel(time=f'{self.year}-01-01', method='nearest').sel(forcing_type=self.forcing_type).rename({'lat': 'Latitude', 'lon': 'Longitude'})
-        self.data_subset = hv.Dataset(subset)
+        subset = ds[self.variable]\
+                    .sel(time=f'{self.year}-01-01', method='nearest') \
+                    .sel(forcing_type=self.forcing_type) \
+                    .rename({'lat': 'Latitude', 'lon': 'Longitude'})
+        subset_hv = hv.Dataset(subset)
+
+        self.data_subset = subset_hv
     
     @param.depends('variable', 'forcing_type', 'pointer', watch=True)
     def _get_ts_data(self):
@@ -192,6 +203,10 @@ class ClimateViewer(param.Parameterized):
     def _get_selection_data(self, bounds):
         minx, miny, maxx, maxy = bounds
         self.selected = self.data_subset.select(Longitude=(minx, maxx), Latitude=(miny, maxy))
+
+    def _update_ranges(self, x_range, y_range):
+        self.x_range = x_range
+        self.y_range = y_range
     
     ## PLOT
     @param.depends('data_subset', 'selected', watch=True)
@@ -218,7 +233,7 @@ class ClimateViewer(param.Parameterized):
                 label = 'Selection'
             )
             self.selection_map_hv = plot_selection
-    
+
     @param.depends('pointer', watch=True)
     def _plot_pointer_marker(self):
         plot = hv.Scatter(
@@ -273,26 +288,37 @@ class ClimateViewer(param.Parameterized):
     ## STYLE
     @param.depends('_plot_map', 'cmap', 'cbar_controls.clim', watch=True)
     def _style_map(self):
+        if not self.x_range == (0, 0):
+            x_range = self.x_range
+        else:
+            x_range = (None, None)
+        if not self.y_range == (0, 0):
+            y_range = self.y_range
+        else:
+            y_range = (None, None)
+
         if not self._selection.bounds == (0, 0, 0, 0):
             alpha = 0.2
 
-            styled_selection = self.selection_map_hv.opts(
+            self.selection_map_hv.opts(
                 cmap=self.cmap,
                 clim=(self.cbar_controls.clim[0], self.cbar_controls.clim[1]),
+                xlim=x_range, ylim=y_range,
+                clone=False
             )
-            self.selection_map_hv = styled_selection
 
         else:
             alpha = 1
 
-        styled_map = self.map_hv.opts(
+        self.map_hv.opts(
             cmap=self.cmap,
             title=f"Average {self.variable} in {self.year}",
-            tools=['box_select', 'lasso_select', 'tap'],
+            tools=['box_select', 'tap'],
             alpha=alpha,
-            colorbar=True, clabel=f'{self.variable}'
+            colorbar=True, clabel=f'{self.variable}',
+            xlim=x_range, ylim=y_range,
+            clone=False
         )
-        self.map_hv = styled_map
 
         self._update_source()
     
@@ -335,13 +361,14 @@ class ClimateViewer(param.Parameterized):
     def _update_source(self):
         self._stream.source = self.map_hv
         self._selection.source = self.map_hv
+        self._zoom.source = self.map_hv
     
     def _update_click(self, x, y):
         self.pointer = (x, y)
     
     ## DASHBOARD PLOT ELEMENTS
     @param.depends('_plot_map', '_style_map', '_plot_pointer_marker')
-    def view_map(self):
+    def view_map(self):      
         if not self._selection.bounds == (0, 0, 0, 0):
             return self.map_hv * self.selection_map_hv * gf.coastline * self._pointer_marker
         else:
