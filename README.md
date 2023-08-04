@@ -14,8 +14,6 @@ This repository hosts notebooks and code written to visualize the [CESM-LENS2](h
 
 3. Create conda environment:
 
-# `conda create --prefix ./.env --file environment.yml`
-
 `conda env create --file environment.yml -n lens2`
 or 
 `mamba env create --file environment.yml -n lens2`
