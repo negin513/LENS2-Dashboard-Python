@@ -6,15 +6,16 @@ This repository hosts notebooks and code written to visualize the [CESM-LENS2](h
 
 1. Clone the repository:
 
-`git clone https://github.com/negin513/SIParCS-Vis.git`
+`git clone https://github.com/negin513/LENS2-Dashboard-Python.git`
 
 2. Navigate to project directory:
 
-`cd SIParCS-Vis`
+`cd LENS2-Dashboard-Python`
 
 3. Create conda environment:
 
 `conda create --prefix ./.env --file environment.yml`
+
 
 4. Start a jupyterlab session and run the notebooks. Start jupyterlab session:
 
