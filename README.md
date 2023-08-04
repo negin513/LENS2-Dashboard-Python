@@ -45,3 +45,7 @@ After creating and activating environment:
 3. Start panel server
 
 `panel serve src/cesm-2-dashboard/app.py --allow-websocket-origin="*" --autoreload`
+
+
+
+Data: https://drive.google.com/file/d/1GF5UiAb7QJ5eeNh7p4Y2EzXVh10A6Bbt/view?usp=drive_link
