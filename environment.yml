@@ -1,3 +1,4 @@
+name: lens2
 channels:
   - pyviz
   - conda-forge
@@ -9,8 +10,6 @@ dependencies:
   - xarray
   - dask
   - jupyterlab
-  - intake-esm
-  - s3fs
   - geoviews
   - hvplot
   - jupyter_bokeh
