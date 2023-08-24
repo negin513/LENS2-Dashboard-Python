@@ -1,4 +1,4 @@
 .ipynb_checkpoints
 .env
-data_files/
+data_files*
 __pycache__

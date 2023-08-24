@@ -9,3 +9,5 @@ jupyter_bokeh
 cartopy
 dask-jobqueue
 datashader
+netcdf4
+h5netcdf
