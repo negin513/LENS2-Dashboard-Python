@@ -1,0 +1,11 @@
+holoviews
+bokeh
+xarray
+dask
+jupyterlab
+geoviews
+hvplot
+jupyter_bokeh
+cartopy
+dask-jobqueue
+datashader
