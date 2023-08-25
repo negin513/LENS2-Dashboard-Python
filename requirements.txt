@@ -11,3 +11,5 @@ dask-jobqueue
 datashader
 netcdf4
 h5netcdf
+numpy
+lz4

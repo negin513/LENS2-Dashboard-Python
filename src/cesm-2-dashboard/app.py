@@ -30,7 +30,7 @@ opts.defaults(
     )
 )
 
-#CLUSTER_TYPE = 'tcp://10.12.1.3:38124'
+#CLUSTER_TYPE = 'scheduler:8786'
 CLUSTER_TYPE='LocalCluster'
 PERSIST_DATA = True
 
@@ -63,7 +63,7 @@ elif CLUSTER_TYPE == 'LocalCluster':
         n_workers = 4
     )
     client = Client(cluster)
-elif CLUSTER_TYPE.startswith('tcp://'):
+elif CLUSTER_TYPE.startswith('scheduler'):
     client = Client(CLUSTER_TYPE)
 else:
     raise "Unknown cluster type"
