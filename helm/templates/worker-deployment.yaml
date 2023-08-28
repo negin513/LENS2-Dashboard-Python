@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+  name: {{ .Values.worker.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.worker.name }}
+    group: {{ .Values.webapp.group }}
+    component: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+    app: {{ .Values.worker.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.worker.name }}
+        component: worker
+    spec:
+      containers:
+      - name: {{ .Values.webapp.name }}-worker
+        image: {{ .Values.scheduler.container.image }}
+        imagePullPolicy: {{ .Values.scheduler.container.imagePullPolicy }}
+        args:
+            - dask-scheduler:{{ .Values.scheduler.container.workerPort }}
+    

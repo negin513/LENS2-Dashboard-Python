@@ -35,3 +35,27 @@ This repository hosts notebooks and code written to visualize the [CESM-LENS2](h
 3. Start panel server
 
 `panel serve src/cesm-2-dashboard/app.py --allow-websocket-origin="*" --autoreload`
+
+## Using Docker Locally with seperate containers for dask
+***Note:*** Make sure app.py has `CLUSTER_TYPE = 'scheduler:8786'` set before building the container image. 
+The commands used will pull from the ncote Docker Hub repository if you do not build locally.
+You can specify your own docker image names to replace anything that begins with `ncote/`
+
+1. Build the docker images for the web application and dask
+
+`docker build -t ncote/lens2-docker .`
+`docker build -f Dockerfile.dask -t ncote/dask-lens2 .`
+
+2. Create a docker network to run the containers on
+
+`docker network create dask`
+
+3. Start the Dask schedulers and workers
+***Note:*** This can be run in individual terminal windows or by running the container in detached mode with the `-d` flag
+
+`docker run --network dask -p 8787:8787 --name scheduler ncote/dask-lens2 dask-scheduler`
+`docker run --network dask ncote/dask-lens2 dask-worker scheduler:8786`
+
+4. Start the Web Application
+
+`docker run --network dask -p 5006:5006 ncote/lens2-docker`

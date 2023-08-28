@@ -30,8 +30,8 @@ opts.defaults(
     )
 )
 
-#CLUSTER_TYPE = 'scheduler:8786'
-CLUSTER_TYPE='LocalCluster'
+CLUSTER_TYPE = 'scheduler:8786'
+#CLUSTER_TYPE='LocalCluster'
 PERSIST_DATA = True
 
 print(f"{CLUSTER_TYPE = }")
