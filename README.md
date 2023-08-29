@@ -44,6 +44,7 @@ You can specify your own docker image names to replace anything that begins with
 1. Build the docker images for the web application and dask
 
 `docker build -t ncote/lens2-docker .`
+
 `docker build -f Dockerfile.dask -t ncote/dask-lens2 .`
 
 2. Create a docker network to run the containers on
@@ -54,6 +55,7 @@ You can specify your own docker image names to replace anything that begins with
 ***Note:*** This can be run in individual terminal windows or by running the container in detached mode with the `-d` flag
 
 `docker run --network dask -p 8787:8787 --name scheduler ncote/dask-lens2 dask-scheduler`
+
 `docker run --network dask ncote/dask-lens2 dask-worker scheduler:8786`
 
 4. Start the Web Application
