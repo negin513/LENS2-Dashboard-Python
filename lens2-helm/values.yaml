@@ -24,4 +24,4 @@ scheduler:
     cpu: 2
 worker:
   name: dask-worker
-  replicaCount: 4
+  replicaCount: 2

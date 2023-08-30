@@ -1,5 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
+metadata:
   name: {{ .Values.worker.name }}
   namespace: {{ .Release.Namespace }}
   labels:
@@ -7,10 +8,10 @@ kind: Deployment
     group: {{ .Values.webapp.group }}
     component: worker
 spec:
-  replicas: 1
+  replicas: {{ .Values.worker.replicaCount }}
   selector:
     matchLabels:
-    app: {{ .Values.worker.name }}
+      app: {{ .Values.worker.name }}
   template:
     metadata:
       labels:
@@ -22,5 +23,6 @@ spec:
         image: {{ .Values.scheduler.container.image }}
         imagePullPolicy: {{ .Values.scheduler.container.imagePullPolicy }}
         args:
-            - dask-scheduler:{{ .Values.scheduler.container.workerPort }}
+            - dask-worker
+            - {{ .Values.scheduler.name }}:{{ .Values.scheduler.container.workerPort }}
     

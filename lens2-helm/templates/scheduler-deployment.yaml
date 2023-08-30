@@ -10,7 +10,7 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-    app: {{ .Values.scheduler.name }}
+      app: {{ .Values.scheduler.name }}
   template:
     metadata:
       labels:
@@ -22,8 +22,6 @@ spec:
         imagePullPolicy: {{ .Values.scheduler.container.imagePullPolicy }}
         args:
             - dask-scheduler
-            - --port={{ .Values.scheduler.container.workerPort }}
-            - --dashboard-address=:8787
         ports:
           - containerPort: {{ .Values.scheduler.container.workerPort }}
           - containerPort: {{ .Values.scheduler.container.dashboardPort }}
