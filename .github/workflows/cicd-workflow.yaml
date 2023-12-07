@@ -1,0 +1,68 @@
+name: Data Flask CICD Pipeline
+
+# Start the workflow when any updates are made to the src directory in GitHub
+on: 
+  push:
+    paths:
+      - src/**
+
+jobs:
+  docker-stuff:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repo 
+        uses: actions/checkout@v3
+# Login to DockerHub. Setup Repository secrets with your DockerHub username and a Token
+# This is found in Settings - > Security -> Secrets and variables -> Actions -> Repository Secrets
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN  }}
+# We use the current date as the tag for the Docker image
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d.%H.%M')" >> $GITHUB_OUTPUT
+# Build the LENS2 Docker image and push it to DockerHub
+      - name: Build and push Lens 2 Docker image
+        uses: docker/build-push-action@v4
+        with:
+          # Provide the current directory as build context 
+          context: .
+          # Specify where the Dockerfile is located in relation to the repo base path
+          file: Dockerfile
+          # Enable the push to docker hub
+          push: true
+          # Provide the tags to apply to the image, this example uses the latest image tag 
+          tags: |
+            ncote/LENS2:${{ steps.date.outputs.date }}
+# Build the LENS2 Dask Docker image and push it to DockerHub
+# We need to include a custom dask image with our data and python packages
+      - name: Build and push Lens 2 Docker image
+        uses: docker/build-push-action@v4
+        with:
+          # Provide the current directory as build context 
+          context: .
+          # Specify where the Dockerfile is located in relation to the repo base path
+          file: Dockerfile.dask
+          # Enable the push to docker hub
+          push: true
+          # Provide the tags to apply to the image, this example uses the latest image tag 
+          tags: |
+            ncote/dask-lens2:${{ steps.date.outputs.date }}
+      - name: Update Helm values.yaml
+        run: |
+          sed -i "/lens2 c\    image: ncote/LENS2:${{ steps.date.outputs.date }}" lens2-helm/values.yaml
+          sed -i "/dask-lens2 c\    image: ncote/dask-lens2:${{ steps.date.outputs.date }}" lens2-helm/values.yaml
+      - name: Update Helm Chart.yaml
+        run: |
+          sed -i "/appVersion:/ c\appVersion: ${{ steps.date.outputs.date }}" lens2-helm/Chart.yaml
+      - name: Run python script to update version by 1
+        run: python update_ver.py
+      - name: Push changes to GitHub
+        run: |
+          git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git config --global user.name "$GITHUB_ACTOR"
+          git commit -a -m "Update Helm chart via GH Actions"
+          git push
+
