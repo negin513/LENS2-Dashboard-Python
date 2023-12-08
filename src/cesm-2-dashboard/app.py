@@ -30,7 +30,8 @@ opts.defaults(
     )
 )
 
-CLUSTER_TYPE = 'tcp://10.12.1.3:38124'
+#CLUSTER_TYPE = 'tcp://10.12.1.3:38124'
+CLUSTER_TYPE='LocalCluster'
 PERSIST_DATA = True
 
 print(f"{CLUSTER_TYPE = }")
@@ -67,7 +68,7 @@ elif CLUSTER_TYPE.startswith('tcp://'):
 else:
     raise "Unknown cluster type"
 
-parent_dir = Path('data/')
+parent_dir = Path('data_files/mean/')
 files = list(parent_dir.glob('*.nc'))
 print(*[f.name for f in files], sep=', ') 
 
@@ -82,10 +83,10 @@ ds = ds.rename({k:f"{ds[k].attrs['long_name']} ({ds[k].attrs.get('units', 'unitl
 
 if PERSIST_DATA:
     ds = ds.persist()
-
-std_parent_dir = Path('data/std_dev/')
+print ('!!!!!!!!!!1')
+std_parent_dir = Path('data_files/std_dev/')
 files = list(std_parent_dir.glob("*.nc"))
-
+print (files)
 
 std_ds = xr.open_mfdataset(files, parallel=True)
 std_ds = std_ds.convert_calendar('standard')
