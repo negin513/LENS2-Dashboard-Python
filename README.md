@@ -14,24 +14,38 @@ This repository hosts notebooks and code written to visualize the [CESM-LENS2](h
 
 3. Create conda environment:
 
-`conda create --prefix ./.env --file environment.yml`
+`conda env create --file environment.yml -n lens2`
+or 
+`mamba env create --file environment.yml -n lens2`
+
+4. activate the environment:
+
+`conda activate lens2`
 
 
-4. Start a jupyterlab session and run the notebooks. Start jupyterlab session:
+## Exploring via notebook: 
+
+5. Start a jupyterlab session and run the notebooks. Start jupyterlab session:
 
 `jupyter lab`
 
 
-## Serve the app
+## Serve the app from outside notebook:
 
-1. Start a dask scheduler
+After creating and activating environment:
 
-`dask scheduler --host localhost --port 8786`
+1. In one terminal, start a dask scheduler
+
+`dask scheduler --host localhost --port 8786 &`
 
 2. Start dask workers - 2 workers, with 2GB memory each
 
-`dask worker --host localhost --nworkers 2 --memory-limit '2GB' localhost:8786`
+`dask worker --host localhost --nworkers 2 --memory-limit '2GB' localhost:8786 &`
 
 3. Start panel server
 
 `panel serve src/cesm-2-dashboard/app.py --allow-websocket-origin="*" --autoreload`
+
+
+
+Data: https://drive.google.com/file/d/1GF5UiAb7QJ5eeNh7p4Y2EzXVh10A6Bbt/view?usp=drive_link
