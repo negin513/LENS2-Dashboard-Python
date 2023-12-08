@@ -71,6 +71,7 @@ In order to deploy your container build on K8s it needs to be located in a conta
 1. Tag your image with a descriptive tag, `:latest` should not be used
 
 `docker tag ncote/lens2-docker:latest ncote/lens2-docker:2023-12-8`
+
 `docker tag ncote/dask-lens2:latest ncote/dask-lens2:v1`
 
 The first image name is the local container. The second image name is the new tag to be push. 
@@ -79,6 +80,7 @@ The first image name is the local container. The second image name is the new ta
 2. Push the image
 
 `docker push ncote/lens2-docker:2023-12-8`
+
 `docker push ncote/dask-lens2:v1`
 
 The images are now in Docker Hub and can be used in our Helm chart. 
