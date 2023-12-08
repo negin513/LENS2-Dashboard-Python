@@ -1,0 +1,27 @@
+webapp:
+  name: ncote-lens2-demo
+  group: ncote-lens2-demo
+  replicaCount: 1
+  path: /
+  tls:
+    fqdn: ncote-lens2-demo.k8s.ucar.edu
+    secretName: incommon-cert-ncote-lens2-demo
+  container: 
+    image: hub.k8s.ucar.edu/ncote/lens2-docker:2023-12-8
+    imagePullPolicy: Always
+    port: 5006
+    memory: 1G
+    cpu: 2
+scheduler:
+  name: scheduler
+  path: /dask-dashboard
+  container: 
+    image: hub.k8s.ucar.edu/ncote/dask-lens2:v1
+    imagePullPolicy: Always
+    dashboardPort: 8787
+    workerPort: 8786
+    memory: 1G
+    cpu: 2
+worker:
+  name: dask-worker
+  replicaCount: 2

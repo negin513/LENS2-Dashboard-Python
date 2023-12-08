@@ -30,8 +30,13 @@ opts.defaults(
     )
 )
 
-#CLUSTER_TYPE = 'tcp://10.12.1.3:38124'
-CLUSTER_TYPE='LocalCluster'
+# This is defined by the name we gave the Dask Scheduler Pod in the Helm Chart
+# We can connect to the Dask Scheduler by name and port on K8s since it's in the same Deployment
+CLUSTER_TYPE = 'scheduler:8786'
+
+# Use LocalCluster if you are not going to build and deploy a Dask cluster
+#CLUSTER_TYPE='LocalCluster'
+
 PERSIST_DATA = True
 
 print(f"{CLUSTER_TYPE = }")
@@ -63,7 +68,7 @@ elif CLUSTER_TYPE == 'LocalCluster':
         n_workers = 4
     )
     client = Client(cluster)
-elif CLUSTER_TYPE.startswith('tcp://'):
+elif CLUSTER_TYPE.startswith('scheduler'):
     client = Client(CLUSTER_TYPE)
 else:
     raise "Unknown cluster type"
