@@ -1,7 +1,7 @@
 webapp:
   name: negins-lens2-demo
   group: negins-lens2-demo
-  replicaCount: 1
+  replicaCount: 3
   path: /
   tls:
     fqdn: negins-lens2-demo.k8s.ucar.edu
