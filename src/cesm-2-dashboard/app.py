@@ -76,6 +76,7 @@ else:
     raise "Unknown cluster type"
 
 # Try and download the files from Stratus if they don't exist
+# Skip if they do
 path = 'LENS2-ncote-dashboard/data_files'
 isExist = os.path.exists(path)
 if isExist:
