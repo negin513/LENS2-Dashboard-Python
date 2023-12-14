@@ -9,6 +9,8 @@ import requests.packages.urllib3
 # We aren't verifying certs to start so this line is disable warnings
 requests.packages.urllib3.disable_warnings()
 
+# This file is used to download data files required for the dashboard
+
 # Define the Stratus S3 client to be used in other operations
 def stratus_s3_client():
     # Define the API endpoint for stratus
