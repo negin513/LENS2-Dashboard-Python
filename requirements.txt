@@ -13,3 +13,4 @@ netcdf4
 h5netcdf
 numpy
 lz4
+boto3

@@ -2,7 +2,9 @@ FROM ghcr.io/dask/dask
 
 RUN mkdir -p data_files
 
-COPY data_files/ /data_files/
+COPY src/cesm-2-dashboard/stratus.py .
 COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
+
+CMD ["python","-c","import","stratus;","stratus.get_data_files()"]

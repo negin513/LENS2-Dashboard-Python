@@ -4,6 +4,7 @@ import geoviews as gv
 import panel as pn
 import param
 from datetime import datetime
+from stratus import get_data_files
 
 from dask.distributed import Client
 import dask
@@ -73,10 +74,17 @@ elif CLUSTER_TYPE.startswith('scheduler'):
 else:
     raise "Unknown cluster type"
 
-parent_dir = Path('data_files/mean/')
-files = list(parent_dir.glob('*.nc'))
-print(*[f.name for f in files], sep=', ') 
-
+path = 'LENS2-ncote-dashboard/data_files'
+isExist = os.path.exists(path)
+if isExist:
+    parent_dir = Path('LENS2-ncote-dashboard/data_files/mean/')
+    files = list(parent_dir.glob('*.nc'))
+    print(*[f.name for f in files], sep=', ') 
+else:
+    get_data_files()
+    parent_dir = Path('LENS2-ncote-dashboard/data_files/mean/')
+    files = list(parent_dir.glob('*.nc'))
+    print(*[f.name for f in files], sep=', ') 
 
 ds = xr.open_mfdataset(files, parallel=True)
 ds = ds.convert_calendar('standard')
