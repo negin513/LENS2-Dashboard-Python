@@ -53,12 +53,12 @@ jobs:
           # Provide the tags to apply to the image, this example uses the latest image tag 
           tags: |
             ncote/dask-lens2:${{ steps.date.outputs.date }}
-      - name: Update Helm values.yaml
+      - name: Update Helm values.yaml with App image
         run: |
-          sed -i "lens2-docker c\    image: ncote/lens2:${{ steps.date.outputs.date }}" lens2-helm/values.yaml
-      - name: Update Helm values.yaml
+          sed -i "lens2-docker c\    image: ncote\/lens2:${{ steps.date.outputs.date }}" lens2-helm/values.yaml
+      - name: Update Helm values.yaml with Dask image
         run: |
-          sed -i "dask-lens2 c\    image: ncote/dask-lens2:${{ steps.date.outputs.date }}" lens2-helm/values.yaml
+          sed -i "dask-lens2 c\    image: ncote\/dask-lens2:${{ steps.date.outputs.date }}" lens2-helm/values.yaml
       - name: Update Helm Chart.yaml
         run: |
           sed -i "/appVersion:/ c\appVersion: ${{ steps.date.outputs.date }}" lens2-helm/Chart.yaml
