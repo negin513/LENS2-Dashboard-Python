@@ -75,7 +75,7 @@ elif CLUSTER_TYPE.startswith('scheduler'):
 else:
     raise "Unknown cluster type"
 
-# Try and download the files from Stratus
+# Try and download the files
 path = 'LENS2-ncote-dashboard/data_files'
 isExist = os.path.exists(path)
 if isExist:
