@@ -10,8 +10,8 @@ webapp:
     image: ncote/lens2-docker:2023-12-14.20.18
     imagePullPolicy: Always
     port: 5006
-    memory: 1G
-    cpu: 2
+    memory: 4G
+    cpu: 4
 scheduler:
   name: scheduler
   path: /dask-dashboard
