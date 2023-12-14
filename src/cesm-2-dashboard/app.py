@@ -79,14 +79,13 @@ else:
 path = 'LENS2-ncote-dashboard/data_files'
 isExist = os.path.exists(path)
 if isExist:
-    parent_dir = Path('LENS2-ncote-dashboard/data_files/mean/')
-    files = list(parent_dir.glob('*.nc'))
-    print(*[f.name for f in files], sep=', ') 
+    pass
 else:
     get_data_files()
-    parent_dir = Path('LENS2-ncote-dashboard/data_files/mean/')
-    files = list(parent_dir.glob('*.nc'))
-    print(*[f.name for f in files], sep=', ') 
+
+parent_dir = Path('LENS2-ncote-dashboard/data_files/mean/')
+files = list(parent_dir.glob('*.nc'))
+print(*[f.name for f in files], sep=', ') 
 
 ds = xr.open_mfdataset(files, parallel=True)
 ds = ds.convert_calendar('standard')
@@ -99,7 +98,7 @@ ds = ds.rename({k:f"{ds[k].attrs['long_name']} ({ds[k].attrs.get('units', 'unitl
 if PERSIST_DATA:
     ds = ds.persist()
 print ('!!!!!!!!!!1')
-std_parent_dir = Path('data_files/std_dev/')
+std_parent_dir = Path('LENS2-ncote-dashboard/data_files/std_dev/')
 files = list(std_parent_dir.glob("*.nc"))
 print (files)
 
