@@ -55,10 +55,10 @@ jobs:
             ncote/dask-lens2:${{ steps.date.outputs.date }}
       - name: Update Helm values.yaml
         run: |
-          sed -i "/lens2 c\    image: ncote/lens2:${{ steps.date.outputs.date }}" lens2-helm/values.yaml
+          sed -i "ncote/lens2 c\    image: ncote/lens2:${{ steps.date.outputs.date }}" lens2-helm/values.yaml
       - name: Update Helm values.yaml
         run: |
-          sed -i "/dask-lens2 c\    image: ncote/dask-lens2:${{ steps.date.outputs.date }}" lens2-helm/values.yaml
+          sed -i "ncote/dask-lens2 c\    image: ncote/dask-lens2:${{ steps.date.outputs.date }}" lens2-helm/values.yaml
       - name: Update Helm Chart.yaml
         run: |
           sed -i "/appVersion:/ c\appVersion: ${{ steps.date.outputs.date }}" lens2-helm/Chart.yaml
