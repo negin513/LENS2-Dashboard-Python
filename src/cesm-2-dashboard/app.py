@@ -5,6 +5,7 @@ import panel as pn
 import param
 from datetime import datetime
 from stratus import get_data_files
+import os
 
 from dask.distributed import Client
 import dask
