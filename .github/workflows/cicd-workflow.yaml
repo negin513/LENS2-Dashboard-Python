@@ -41,7 +41,7 @@ jobs:
             ncote/lens2-docker:${{ steps.date.outputs.date }}
 # Build the LENS2 Dask Docker image and push it to DockerHub
 # We need to include a custom dask image with our data and python packages
-      - name: Build and push Lens 2 Docker image
+      - name: Build and push Dask Docker image
         uses: docker/build-push-action@v4
         with:
           # Provide the current directory as build context 
