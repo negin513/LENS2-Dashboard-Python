@@ -160,6 +160,7 @@ DESCRIPTION = pn.pane.HTML("""
     <li><a href="https://www.youtube.com/watch?v=HWjW51i6s2s">Introduction to Earth System Modeling</a></li>
     <li><a href="https://www.youtube.com/watch?v=Yd85l5rj0OE">Introduction to the Community Earth System Model (CESM)</a></li>
     <li><a href="https://www.cesm.ucar.edu/community-projects/lens2">CESM2 Large Ensemble Community Project (LENS2)</a></li>
+    <li><a href="https://ncote-lens2-demo.k8s.ucar.edu/dask-dashboard/status">Dask Diagnostic UI</a><li>
 </p>
 </p>
 """)
