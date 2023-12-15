@@ -8,3 +8,5 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 CMD ["python","-c","import","stratus;","stratus.get_data_files()"]
+
+ENTRYPOINT ["tini", "-g", "--", "/usr/bin/prepare.sh"]

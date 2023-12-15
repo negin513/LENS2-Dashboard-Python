@@ -67,7 +67,7 @@ elif CLUSTER_TYPE == 'LocalCluster':
 
     cluster = LocalCluster(
         'climate-viewer',
-        n_workers = 4
+        n_workers = 2
     )
     client = Client(cluster)
 elif CLUSTER_TYPE.startswith('scheduler'):
@@ -77,8 +77,8 @@ else:
 
 # Try and download the files from Stratus if they don't exist
 # Skip if they do
-path = 'LENS2-ncote-dashboard/data_files'
-isExist = os.path.exists(path)
+data_path = 'LENS2-ncote-dashboard/data_files'
+isExist = os.path.exists(data_path)
 if isExist:
     pass
 else:

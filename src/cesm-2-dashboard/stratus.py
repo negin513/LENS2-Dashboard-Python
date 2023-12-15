@@ -60,15 +60,12 @@ def download_file(filename, bucketname):
     s3_client = stratus_s3_client()
     if "/" in filename:
         directory_split = filename.split("/")
-        print(directory_split)
         directory_split.pop(len(directory_split)-1)
-        print(directory_split)
         directory = "/".join(directory_split)
         if os.path.exists(directory):
             # Open a local file with the same filename as the one we are downloading
             s3_client.download_file(bucketname, filename, filename)
         else:
-            print(directory)
             os.makedirs(directory, exist_ok=True)
             s3_client.download_file(bucketname, filename, filename)
     else:
