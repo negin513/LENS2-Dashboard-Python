@@ -25,8 +25,7 @@ spec:
         args:
           - /bin/bash
           - python
-          - get_data.py
-          - '&&'
-          - dask-worker
-          - {{ .Values.scheduler.name }}:{{ .Values.scheduler.container.workerPort }}
+          - get_data.py;
+            dask-worker
+            {{ .Values.scheduler.name }}:{{ .Values.scheduler.container.workerPort }}
     
