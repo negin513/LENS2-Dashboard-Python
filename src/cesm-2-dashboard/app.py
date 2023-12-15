@@ -155,12 +155,16 @@ DESCRIPTION = pn.pane.HTML("""
 <p>All models include uncertainty. This uncertainty is represented by the shaded area in the time-series chart above, which shows the ±1 standard deviation region, meaning approximately 68% of the data will be within this region. The darker line within the shaded areas shows an average, or most, likely expected outcome within the range of possibilities.  </p>
 <h3>Spatial Scale and Inputs: </h3>
 
+<h2>Monitor App Performance:</h2>
+<p>
+    <li><a href="https://ncote-lens2-demo.k8s.ucar.edu/dask-dashboard/status">Dask Diagnostic UI</a><li>
+</p>
+
 <h2>More Information on Earth System Modeling:</h2>
 <p>
     <li><a href="https://www.youtube.com/watch?v=HWjW51i6s2s">Introduction to Earth System Modeling</a></li>
     <li><a href="https://www.youtube.com/watch?v=Yd85l5rj0OE">Introduction to the Community Earth System Model (CESM)</a></li>
     <li><a href="https://www.cesm.ucar.edu/community-projects/lens2">CESM2 Large Ensemble Community Project (LENS2)</a></li>
-    <li><a href="https://ncote-lens2-demo.k8s.ucar.edu/dask-dashboard/status">Dask Diagnostic UI</a><li>
 </p>
 </p>
 """)
