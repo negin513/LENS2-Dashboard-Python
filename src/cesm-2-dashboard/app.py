@@ -34,6 +34,7 @@ opts.defaults(
 
 # This is defined by the name we gave the Dask Scheduler Pod in the Helm Chart
 # We can connect to the Dask Scheduler by name and port on K8s since it's in the same Deployment
+# The Dask image should be customized to contain the data & packages needed
 CLUSTER_TYPE = 'scheduler:8786'
 
 # Use LocalCluster if you are not going to build and deploy a Dask cluster
