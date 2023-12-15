@@ -1,12 +1,14 @@
 FROM ghcr.io/dask/dask
 
-RUN mkdir -p data_files
+RUN mkdir -p app
 
-COPY src/cesm-2-dashboard/stratus.py .
+COPY src/cesm-2-dashboard/stratus.py /app
 COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["python","-c","import","stratus;","stratus.get_data_files()"]
+WORKDIR /app
+
+CMD ["python","-c","'import stratus; stratus.get_data_files()'"]
 
 ENTRYPOINT ["tini", "-g", "--", "/usr/bin/prepare.sh"]

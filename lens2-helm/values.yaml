@@ -20,8 +20,8 @@ scheduler:
     imagePullPolicy: Always
     dashboardPort: 8787
     workerPort: 8786
-    memory: 1G
-    cpu: 2
+    memory: 4G
+    cpu: 1
 worker:
   name: dask-worker
-  replicaCount: 2
+  replicaCount: 4
