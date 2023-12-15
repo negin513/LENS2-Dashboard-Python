@@ -22,6 +22,9 @@ spec:
       - name: {{ .Values.webapp.name }}-worker
         image: {{ .Values.scheduler.container.image }}
         imagePullPolicy: {{ .Values.scheduler.container.imagePullPolicy }}
+        command:
+          - python
+          - get_data.py
         args:
             - dask-worker
             - {{ .Values.scheduler.name }}:{{ .Values.scheduler.container.workerPort }}
