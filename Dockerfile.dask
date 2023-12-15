@@ -9,6 +9,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 WORKDIR /app
 
-ENTRYPOINT ["tini", "-g", "--", "/usr/bin/prepare.sh"]
-
-CMD ["python","-c","'import stratus; stratus.get_data_files()'"]
+CMD ["python","-c","'import" "stratus;" "stratus.get_data_files()'"]
