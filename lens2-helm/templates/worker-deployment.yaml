@@ -23,7 +23,6 @@ spec:
         image: {{ .Values.scheduler.container.image }}
         imagePullPolicy: {{ .Values.scheduler.container.imagePullPolicy }}
         args:
-          - /bin/bash
           - python
           - get_data.py
           - /bin/bash
