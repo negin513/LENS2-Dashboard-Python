@@ -7,7 +7,7 @@ webapp:
     fqdn: ncote-lens2-demo.k8s.ucar.edu
     secretName: incommon-cert-ncote-lens2-demo
   container: 
-    image: ncote/lens2-docker:2023-12-15.16.33
+    image: ncote/lens2-docker:2023-12-15.17.05
     imagePullPolicy: Always
     port: 5006
     memory: 4G
@@ -16,7 +16,7 @@ scheduler:
   name: scheduler
   path: /dask-dashboard
   container: 
-    image: ncote/dask-lens2:2023-12-15.16.33
+    image: ncote/dask-lens2:2023-12-15.17.05
     imagePullPolicy: Always
     dashboardPort: 8787
     workerPort: 8786
