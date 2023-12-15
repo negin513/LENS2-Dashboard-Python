@@ -77,7 +77,7 @@ else:
 
 # Try and download the files from Stratus if they don't exist
 # Skip if they do
-data_path = 'LENS2-ncote-dashboard/data_files'
+data_path = '/app/LENS2-ncote-dashboard/data_files'
 isExist = os.path.exists(data_path)
 if isExist:
     pass
