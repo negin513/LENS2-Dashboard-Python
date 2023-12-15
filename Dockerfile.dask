@@ -2,7 +2,7 @@ FROM ghcr.io/dask/dask
 
 RUN mkdir -p app
 
-COPY prepare.sh /usr/bin/prepare.sh
+COPY src/cesm-2-dashboard/prepare.sh /usr/bin/prepare.sh
 COPY src/cesm-2-dashboard/stratus.py /app
 COPY src/cesm-2-dashboard/get_data.py /app
 COPY requirements.txt .
