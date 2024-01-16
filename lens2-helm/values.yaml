@@ -1,8 +1,10 @@
 webapp:
   name: ncote-lens2-demo
   group: ncote-lens2-demo
-  minReplicaCount: 1
-  maxReplicaCount: 10
+  autoscale:
+    minReplicaCount: 1
+    maxReplicaCount: 10
+    cpuAverageUtilization: 50
   path: /
   tls:
     fqdn: ncote-lens2-demo.k8s.ucar.edu
