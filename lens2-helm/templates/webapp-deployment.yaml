@@ -8,6 +8,11 @@ metadata:
     group: {{ .Values.webapp.group }}
 spec:
   replicas: {{ .Values.webapp.replicaCount }}
+  autoScaling:
+    horizontal:
+      maxReplicas: {{ .Values.webapp.maxReplicas }}
+      averageCPU: {{ .Values.webapp.averageCPU }}
+      averageRelativeMemory: {{ .Values.webapp.averageRelativeMemory }}
   selector:
     matchLabels:
       app: {{ .Values.webapp.name }}

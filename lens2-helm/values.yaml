@@ -2,6 +2,9 @@ webapp:
   name: ncote-lens2-demo
   group: ncote-lens2-demo
   replicaCount: 1
+  maxReplicas: 4
+  averageCPU: 800m
+  averageRelativeMemory: 50
   path: /
   tls:
     fqdn: ncote-lens2-demo.k8s.ucar.edu
