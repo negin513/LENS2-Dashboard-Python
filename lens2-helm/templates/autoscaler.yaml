@@ -9,7 +9,7 @@ spec:
     kind: Deployment
     name: {{ .Values.webapp.name }}
   minReplicas: {{ .Values.webapp.autoscale.minReplicaCount }}
-  maxReplicas: 10
+  maxReplicas: {{ .Values.webapp.autoscale.maxReplicaCount }}
   metrics:
   - type: Resource
     resource:
