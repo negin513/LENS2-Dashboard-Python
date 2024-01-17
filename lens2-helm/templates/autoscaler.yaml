@@ -1,19 +1,12 @@
-# Reference https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/
-apiVersion: autoscaling/v2
+apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ .Values.webapp.name }}
+ name: {{ .Values.webapp.name }}
 spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: {{ .Values.webapp.name }}
-  minReplicas: {{ .Values.webapp.autoscale.minReplicaCount }}
-  maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 50
+ scaleTargetRef:
+   apiVersion: apps/v1
+   kind: Deployment
+   name: {{ .Values.webapp.name }}
+ minReplicas: 1
+ maxReplicas: 10
+ targetCPUUtilizationPercentage: 50
