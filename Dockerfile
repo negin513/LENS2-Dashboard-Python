@@ -15,8 +15,7 @@ ADD . /app
 #RUN mamba env create -f environment.yml --force
 
 # Copy the current directory contents into the container at /usr/src/app
-COPY src/cesm-2-dashboard/ .
-COPY requirements.txt .
+COPY src/cesm-2-dashboard/ requirements.txt .
 
 # Install any needed packages specified in requirements.yml
 RUN pip install --no-cache-dir -r requirements.txt && \
