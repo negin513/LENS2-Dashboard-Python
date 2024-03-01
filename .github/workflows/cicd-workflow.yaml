@@ -8,12 +8,12 @@ on:
 
 
 jobs:
-  build-n-push-docker:
+  build-n-push-container:
     runs-on: self-hosted
     steps:
       - name: Checkout the repo 
         uses: actions/checkout@v4
-# We use the current date as the tag for the Docker image
+# We use the current date as the tag for the container image
       - name: Get current date
         id: date
         run: echo "date=$(date +'%Y-%m-%d.%H.%M')" >> $GITHUB_OUTPUT
