@@ -5,7 +5,11 @@ RUN apt-get update && apt-get install -y python3-dev \
     gcc \
     libc-dev \
     libffi-dev \
-    libgeos-dev
+    libgeos-dev \ 
+    wget
+
+RUN wget https://repo.anaconda.com/archive/Anaconda3-2022.05-Linux-x86_64.sh && \
+    bash Anaconda3-2022.05-Linux-x86_64.sh
 
 # Set the working directory in the container to /app
 WORKDIR /app
@@ -24,7 +28,8 @@ ADD . /app
 COPY src/cesm-2-dashboard/ requirements.txt .
 
 # Install any needed packages specified in requirements.yml
-RUN pip install --no-cache-dir -r requirements.txt 
+RUN conda install -c conda-forge cartopy
+#RUN pip install --no-cache-dir -r requirements.txt 
 
 # Activate the environment. This ensures that the environment is activated each time a new container is started from the image.
 #RUN echo "source activate $(head -1 /tmp/environment.yml | cut -d' ' -f2)" > ~/.bashrc

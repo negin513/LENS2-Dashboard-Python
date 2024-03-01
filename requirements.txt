@@ -1,6 +1,6 @@
 #holoviews
 #bokeh
-cartopy
+#cartopy
 #xarray
 #dask
 #jupyterlab
