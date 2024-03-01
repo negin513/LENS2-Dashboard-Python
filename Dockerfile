@@ -1,5 +1,5 @@
 # Use an official Python runtime as a base image
-FROM python:3.8
+FROM python:3.13.0a4
 
 RUN apk update && apk add python3-dev \
     gcc \
