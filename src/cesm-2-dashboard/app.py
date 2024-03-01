@@ -157,7 +157,7 @@ DESCRIPTION = pn.pane.HTML("""
 
 <h2>Monitor App Performance:</h2>
 <p>
-    <li><a href="https://ncote-lens2-demo.k8s.ucar.edu/dask-dashboard/status">Dask Diagnostic UI</a></li>
+    <a href="https://ncote-lens2-demo.k8s.ucar.edu/dask-dashboard/status">Dask Diagnostic UI</a>
 </p>
 
 <h2>More Information on Earth System Modeling:</h2>
