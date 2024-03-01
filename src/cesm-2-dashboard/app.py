@@ -557,6 +557,8 @@ class ClimateViewer(param.Parameterized):
             align='center'
         )
 
+        template.header_background = '#1A658F'
+
         # Append a layout to the main area, to demonstrate the list-like API
         template.main.append(
             content
