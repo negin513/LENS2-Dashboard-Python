@@ -17,9 +17,10 @@ ADD . /app
 # Copy the current directory contents into the container at /usr/src/app
 COPY src/cesm-2-dashboard/ requirements.txt .
 
+
+RUN conda install -c conda-forge cartopy
 # Install any needed packages specified in requirements.yml
-RUN pip install --no-cache-dir -r requirements.txt && \
-    conda install -c conda-forge cartopy
+RUN pip install --no-cache-dir -r requirements.txt 
 
 
 # Activate the environment. This ensures that the environment is activated each time a new container is started from the image.
