@@ -1,7 +1,5 @@
 # Use an official Python runtime as a base image
-FROM continuumio/miniconda3:latest
-FROM condaforge/mambaforge:latest
-
+FROM python:3.8-slim
 
 # Set the working directory in the container to /app
 WORKDIR /app
