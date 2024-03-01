@@ -1,6 +1,10 @@
 # Use an official Python runtime as a base image
 FROM python:3.8-slim
 
+RUN apk update && apk add python3-dev \
+    gcc \
+    libc-dev
+
 # Set the working directory in the container to /app
 WORKDIR /app
 
@@ -17,8 +21,6 @@ ADD . /app
 # Copy the current directory contents into the container at /usr/src/app
 COPY src/cesm-2-dashboard/ requirements.txt .
 
-
-RUN conda install -c conda-forge cartopy
 # Install any needed packages specified in requirements.yml
 RUN pip install --no-cache-dir -r requirements.txt 
 
