@@ -3,8 +3,6 @@ name: LENS2 CICD Pipeline
 # Start the workflow when any updates are made to the src directory in GitHub
 on: 
   push:
-    paths:
-      - src/**
     branches:
       - refactor_0815
 

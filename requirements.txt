@@ -1,4 +1,8 @@
 holoviews
+matplotlib
+shapely
+pyshp
+pyproj
 bokeh
 xarray
 dask
