@@ -20,5 +20,3 @@ RUN micromamba env create -f environment.yml
 EXPOSE 5006
 
 CMD ["panel", "serve", "app.py", "--allow-websocket-origin=ncote-lens2-demo.k8s.ucar.edu", "--autoreload"]
-
-#panel serve src/cesm-2-dashboard/app.py --cluster_type LocalCluster --allow-websocket-origin="*"
