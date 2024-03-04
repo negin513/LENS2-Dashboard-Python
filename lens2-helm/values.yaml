@@ -1,6 +1,7 @@
 webapp:
   name: ncote-lens2-demo
   group: ncote-lens2-demo
+  condaEnv: lens2
   autoscale:
     minReplicaCount: 1
     maxReplicaCount: 10

@@ -1,15 +1,5 @@
 # Use an official Python runtime as a base image
-FROM python:3.13.0a4
-
-RUN apt-get update && apt-get install -y python3-dev \
-    gcc \
-    libc-dev \
-    libffi-dev \
-    libgeos-dev \ 
-    wget
-
-RUN wget https://repo.anaconda.com/archive/Anaconda3-2022.05-Linux-x86_64.sh && \
-    yes | bash Anaconda3-2022.05-Linux-x86_64.sh
+FROM mambaorg/micromamba:latest
 
 # Set the working directory in the container to /app
 WORKDIR /app
@@ -25,21 +15,15 @@ ADD . /app
 #RUN mamba env create -f environment.yml --force
 
 # Copy the current directory contents into the container at /usr/src/app
-COPY src/cesm-2-dashboard/ requirements.txt .
+COPY src/cesm-2-dashboard/ environment.yml .
 
 # Install any needed packages specified in requirements.yml
-RUN conda install -c conda-forge cartopy
-#RUN pip install --no-cache-dir -r requirements.txt 
+RUN micromamba env create -f environment.yml
 
-# Activate the environment. This ensures that the environment is activated each time a new container is started from the image.
-#RUN echo "source activate $(head -1 /tmp/environment.yml | cut -d' ' -f2)" > ~/.bashrc
-
-# Activate the conda environment
-#RUN ["conda", "run", "-n", "lens2", "python", "--version"]
-
+# Activate the environment by providing ENV_NAME as an environment variable at runtime 
 # Make port bokeh application port to the world outside this container
 EXPOSE 5006
 
-CMD ["panel", "serve", "app.py", "--allow-websocket-origin=*", "--autoreload"]
+CMD ["panel", "serve", "app.py", "--allow-websocket-origin=ncote-lens2-demo.k8s.ucar.edu", "--autoreload"]
 
 #panel serve src/cesm-2-dashboard/app.py --cluster_type LocalCluster --allow-websocket-origin="*"
