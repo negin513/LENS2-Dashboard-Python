@@ -1,6 +1,8 @@
 # Use an official Python runtime as a base image
 FROM docker.io/mambaorg/micromamba:latest
 
+USER root
+
 # Set the working directory in the container to /app
 WORKDIR /home/mambauser/app
 
