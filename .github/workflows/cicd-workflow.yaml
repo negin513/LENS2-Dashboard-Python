@@ -20,9 +20,9 @@ jobs:
       - name: Login to Harbor
         run: podman login hub.k8s.ucar.edu -u ncote -p ${{ secrets.NCOTE_HARBOR_LOGIN  }}
       - name: Build LENS2 image
-        run: buildah build -t hub.k8s.ucar.edu/ncote/lens2-docker:${{ steps.date.outputs.date }} .
+        run: podman build --format=docker -t hub.k8s.ucar.edu/ncote/lens2-docker:${{ steps.date.outputs.date }} .
       - name: Build Dask image
-        run: buildah build -t hub.k8s.ucar.edu/ncote/dask-lens2:${{ steps.date.outputs.date }} .
+        run: podman build --format=docker -t hub.k8s.ucar.edu/ncote/dask-lens2:${{ steps.date.outputs.date }} .
       - name: Push LENS2 image to Harbor
         run: podman push hub.k8s.ucar.edu/ncote/lens2-docker:${{ steps.date.outputs.date }}
       - name: Push LENS2 image to Harbor
