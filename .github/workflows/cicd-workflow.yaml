@@ -37,7 +37,7 @@ jobs:
         run: |
           sed -i "/appVersion:/ c\appVersion: ${{ steps.date.outputs.date }}" lens2-helm/Chart.yaml
       - name: Run python script to update version by 1
-        run: python update_ver.py
+        run: python3 update_ver.py
       - name: Push changes to GitHub
         run: |
           git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
