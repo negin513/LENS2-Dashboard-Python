@@ -25,7 +25,7 @@ jobs:
         run: podman build --format=docker -f Dockerfile.dask -t hub.k8s.ucar.edu/ncote/dask-lens2:${{ steps.date.outputs.date }} .
       - name: Push LENS2 image to Harbor
         run: podman push hub.k8s.ucar.edu/ncote/lens2-docker:${{ steps.date.outputs.date }}
-      - name: Push LENS2 image to Harbor
+      - name: Push LENS2-Dask image to Harbor
         run: podman push hub.k8s.ucar.edu/ncote/dask-lens2:${{ steps.date.outputs.date }}
       - name: Update Helm values.yaml with App image
         run: |
