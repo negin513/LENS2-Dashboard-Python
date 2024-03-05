@@ -14,7 +14,7 @@ webapp:
     image: hub.k8s.ucar.edu/ncote/lens2-docker:2024-03-05.01.52
     imagePullPolicy: Always
     port: 5006
-    memory: 4G
+    memory: 16G
     cpu: 4
 scheduler:
   name: scheduler
@@ -24,7 +24,7 @@ scheduler:
     imagePullPolicy: Always
     dashboardPort: 8787
     workerPort: 8786
-    memory: 4G
+    memory: 16G
     cpu: 1
 worker:
   name: dask-worker
