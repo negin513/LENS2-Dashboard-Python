@@ -7,8 +7,7 @@ COPY src/cesm-2-dashboard/stratus.py /app
 COPY src/cesm-2-dashboard/get_data.py /app
 COPY requirements.txt .
 
-RUN conda install -c conda-forge cartopy && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 WORKDIR /app
 
