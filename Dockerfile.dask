@@ -1,14 +1,14 @@
 FROM ghcr.io/dask/dask
 
-RUN mkdir -p app
+RUN mkdir -p /home/mambauser/app
 
 COPY src/cesm-2-dashboard/prepare.sh /usr/bin/prepare.sh
-COPY src/cesm-2-dashboard/stratus.py /app
-COPY src/cesm-2-dashboard/get_data.py /app
+COPY src/cesm-2-dashboard/stratus.py /home/mambauser/app
+COPY src/cesm-2-dashboard/get_data.py /home/mambauser/app
 COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-WORKDIR /app
+WORKDIR /home/mambauser/app
 
 ENTRYPOINT ["tini", "-g", "--", "/usr/bin/prepare.sh"]

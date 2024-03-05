@@ -78,14 +78,14 @@ else:
 
 # Try and download the files from Stratus if they don't exist
 # Skip if they do
-data_path = '~/app/LENS2-ncote-dashboard/data_files'
+data_path = '/home/mambauser/app/LENS2-ncote-dashboard/data_files'
 isExist = os.path.exists(data_path)
 if isExist:
     pass
 else:
     get_data_files()
 
-parent_dir = Path('~/app/LENS2-ncote-dashboard/data_files/mean/')
+parent_dir = Path('/home/mambauser/app/LENS2-ncote-dashboard/data_files/mean/')
 files = list(parent_dir.glob('*.nc'))
 print(*[f.name for f in files], sep=', ') 
 
@@ -100,7 +100,7 @@ ds = ds.rename({k:f"{ds[k].attrs['long_name']} ({ds[k].attrs.get('units', 'unitl
 if PERSIST_DATA:
     ds = ds.persist()
 print ('!!!!!!!!!!1')
-std_parent_dir = Path('~/app/LENS2-ncote-dashboard/data_files/std_dev/')
+std_parent_dir = Path('/home/mambauser/app/LENS2-ncote-dashboard/data_files/std_dev/')
 files = list(std_parent_dir.glob("*.nc"))
 print (files)
 
