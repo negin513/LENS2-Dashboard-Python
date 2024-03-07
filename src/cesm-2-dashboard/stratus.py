@@ -2,6 +2,7 @@ import os
 import boto3
 from botocore import UNSIGNED
 from botocore.config import Config
+# These functions are required to download the data sets needed to run the Panel application
 
 # This requests package is imported to disable certificate access warnings. 
 # SSL certificates can be provided and this would not be required.
