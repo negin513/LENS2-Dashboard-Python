@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# This file is required for the Dask containers and runs the get_data.py script to download data from Stratus
 set -x
 
 # We start by adding extra apt packages, since pip modules may required library
