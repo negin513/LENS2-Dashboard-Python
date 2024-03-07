@@ -37,6 +37,7 @@ CLUSTER_TYPE = 'scheduler:8786'
 # Use LocalCluster if you are not going to build and deploy a Dask cluster
 #CLUSTER_TYPE='LocalCluster'
 
+
 PERSIST_DATA = True
 
 print(f"{CLUSTER_TYPE = }")
