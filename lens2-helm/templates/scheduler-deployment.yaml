@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.scheduler.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.scheduler.name }}
+    group: {{ .Values.webapp.group }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.scheduler.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.scheduler.name }}
+    spec:
+      containers:
+      - name: {{ .Values.scheduler.name }}
+        image: {{ .Values.scheduler.container.image }}
+        imagePullPolicy: {{ .Values.scheduler.container.imagePullPolicy }}
+        args:
+            - dask-scheduler
+        ports:
+          - containerPort: {{ .Values.scheduler.container.workerPort }}
+          - containerPort: {{ .Values.scheduler.container.dashboardPort }}
+        resources:
+          limits:
+            memory: {{ .Values.scheduler.container.memory }}
+            cpu: {{ .Values.scheduler.container.cpu }}

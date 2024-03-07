@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.scheduler.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    group: {{ .Values.webapp.group }}
+  annotations:
+    cert-manager.io/cluster-issuer: "incommon"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      rewrite ^(/dask-dashboard)$ $1/ redirect;
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+      - {{ .Values.webapp.tls.fqdn }}
+      secretName: {{ .Values.webapp.tls.secretName }}
+  rules:
+  - host: {{ .Values.webapp.tls.fqdn }}
+    http:
+      paths:
+      - path: {{ .Values.scheduler.path }}(/|$)(.*)
+        pathType: ImplementationSpecific 
+        backend:
+          service:
+            name: {{ .Values.scheduler.name }}
+            port:
+              number: {{ .Values.scheduler.container.dashboardPort }}
