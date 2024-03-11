@@ -18,4 +18,4 @@ EXPOSE 5006
 
 USER mambauser
 
-CMD ["panel", "serve", "app.py", "--allow-websocket-origin=ncote-lens2-demo.k8s.ucar.edu", "--autoreload"]
+CMD ["panel", "serve", "app.py", "--allow-websocket-origin=negins-lens2-demo.k8s.ucar.edu", "--autoreload"]
