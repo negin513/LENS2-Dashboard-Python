@@ -1,4 +1,4 @@
-# SIParCS - Interactivite visualization of climate data
+# SIParCS - Interactive visualization of climate data
 
 This repository hosts notebooks and code written to visualize the [CESM-LENS2](https://www.cesm.ucar.edu/community-projects/lens2) dataset.
 
