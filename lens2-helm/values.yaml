@@ -1,27 +1,31 @@
 webapp:
-  name: negins-lens2-demo
-  group: negins-lens2-demo
-  replicaCount: 3
+  name: ncote-lens2-demo
+  group: ncote-lens2-demo
+  condaEnv: lens2
+  autoscale:
+    minReplicaCount: 1
+    maxReplicaCount: 10
+    cpuAverageUtilization: 50
   path: /
   tls:
-    fqdn: negins-lens2-demo.k8s.ucar.edu
-    secretName: incommon-cert-negins-lens2-demo
+    fqdn: ncote-lens2-demo.k8s.ucar.edu
+    secretName: incommon-cert-ncote-lens2-demo
   container: 
-    image: hub.k8s.ucar.edu/ncote/lens2-docker:2023-12-8
+    image: hub.k8s.ucar.edu/ncote/lens2-docker:2024-03-07.21.29
     imagePullPolicy: Always
     port: 5006
-    memory: 1G
-    cpu: 2
+    memory: 16G
+    cpu: 4
 scheduler:
   name: scheduler
   path: /dask-dashboard
   container: 
-    image: hub.k8s.ucar.edu/ncote/dask-lens2:v1
+    image: hub.k8s.ucar.edu/ncote/dask-lens2:2024-03-07.21.29
     imagePullPolicy: Always
     dashboardPort: 8787
     workerPort: 8786
-    memory: 1G
-    cpu: 2
+    memory: 16G
+    cpu: 1
 worker:
   name: dask-worker
-  replicaCount: 2
+  replicaCount: 4

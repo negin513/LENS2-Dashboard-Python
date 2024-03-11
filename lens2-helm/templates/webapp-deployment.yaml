@@ -19,6 +19,9 @@ spec:
       containers:
       - name: {{ .Values.webapp.name }}
         image: {{ .Values.webapp.container.image }}
+        env:
+        - name: ENV_NAME
+          value: {{ .Values.webapp.condaEnv }}
         imagePullPolicy: {{ .Values.webapp.container.imagePullPolicy }}
         resources:
           limits:

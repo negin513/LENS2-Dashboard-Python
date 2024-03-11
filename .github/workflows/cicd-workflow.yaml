@@ -1,71 +1,47 @@
 name: LENS2 CICD Pipeline
 
 # Start the workflow when any updates are made to the src directory in GitHub
-#on: 
-#  push:
-#    paths:
-#      - src/**
-#    branches:
-#      - refactor_0815
+on: 
+  push:
+    branches:
+      - refactor_0815
 
 
 jobs:
-  build-n-push-docker:
-    runs-on: ubuntu-latest
+  build-n-push-container:
+    runs-on: self-hosted
     steps:
       - name: Checkout the repo 
-        uses: actions/checkout@v3
-# Login to DockerHub. Setup Repository secrets with your DockerHub username and a Token
-# This is found in Settings - > Security -> Secrets and variables -> Actions -> Repository Secrets
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN  }}
-# We use the current date as the tag for the Docker image
+        uses: actions/checkout@v4
+# We use the current date as the tag for the container image
       - name: Get current date
         id: date
         run: echo "date=$(date +'%Y-%m-%d.%H.%M')" >> $GITHUB_OUTPUT
-# Build the LENS2 Docker image and push it to DockerHub
-      - name: Build and push Lens 2 Docker image
-        uses: docker/build-push-action@v4
-        with:
-          # Provide the current directory as build context 
-          context: .
-          # Specify where the Dockerfile is located in relation to the repo base path
-          file: Dockerfile
-          # Enable the push to docker hub
-          push: true
-          # Provide the tags to apply to the image, this example uses the latest image tag 
-          tags: |
-            ncote/lens2:${{ steps.date.outputs.date }}
-# Build the LENS2 Dask Docker image and push it to DockerHub
-# We need to include a custom dask image with our data and python packages
-      - name: Build and push Lens 2 Docker image
-        uses: docker/build-push-action@v4
-        with:
-          # Provide the current directory as build context 
-          context: .
-          # Specify where the Dockerfile is located in relation to the repo base path
-          file: Dockerfile.dask
-          # Enable the push to docker hub
-          push: true
-          # Provide the tags to apply to the image, this example uses the latest image tag 
-          tags: |
-            ncote/dask-lens2:${{ steps.date.outputs.date }}
-      - name: Update Helm values.yaml
+      - name: Login to Harbor
+        run: podman login hub.k8s.ucar.edu -u ncote -p ${{ secrets.NCOTE_HARBOR_LOGIN  }}
+      - name: Build LENS2 image
+        run: podman build --format=docker -t hub.k8s.ucar.edu/ncote/lens2-docker:${{ steps.date.outputs.date }} .
+      - name: Build Dask image
+        run: podman build --format=docker -f Containerfile.dask -t hub.k8s.ucar.edu/ncote/dask-lens2:${{ steps.date.outputs.date }} .
+      - name: Push LENS2 image to Harbor
+        run: podman push hub.k8s.ucar.edu/ncote/lens2-docker:${{ steps.date.outputs.date }}
+      - name: Push LENS2-Dask image to Harbor
+        run: podman push hub.k8s.ucar.edu/ncote/dask-lens2:${{ steps.date.outputs.date }}
+      - name: Update Helm values.yaml with App image
         run: |
-          sed -i "/lens2 c\    image: ncote/lens2:${{ steps.date.outputs.date }}" lens2-helm/values.yaml
-          sed -i "/dask-lens2 c\    image: ncote/dask-lens2:${{ steps.date.outputs.date }}" lens2-helm/values.yaml
+          sed -i "/lens2-docker/ c\    image: hub.k8s.ucar.edu/ncote/lens2-docker:${{ steps.date.outputs.date }}" lens2-helm/values.yaml
+      - name: Update Helm values.yaml with Dask image
+        run: |
+          sed -i "/dask-lens2/ c\    image: hub.k8s.ucar.edu/ncote\/dask-lens2:${{ steps.date.outputs.date }}" lens2-helm/values.yaml
       - name: Update Helm Chart.yaml
         run: |
           sed -i "/appVersion:/ c\appVersion: ${{ steps.date.outputs.date }}" lens2-helm/Chart.yaml
       - name: Run python script to update version by 1
-        run: python update_ver.py
+        run: python3 update_ver.py
       - name: Push changes to GitHub
         run: |
           git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
           git config --global user.name "$GITHUB_ACTOR"
           git commit -a -m "Update Helm chart via GH Actions"
-          git push
+          git push -u origin refactor_0815
 

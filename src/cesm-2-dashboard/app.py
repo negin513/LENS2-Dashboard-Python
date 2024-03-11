@@ -4,6 +4,8 @@ import geoviews as gv
 import panel as pn
 import param
 from datetime import datetime
+from stratus import get_data_files
+import os
 
 from dask.distributed import Client
 import dask
@@ -32,6 +34,7 @@ opts.defaults(
 
 # This is defined by the name we gave the Dask Scheduler Pod in the Helm Chart
 # We can connect to the Dask Scheduler by name and port on K8s since it's in the same Deployment
+# The Dask image should be customized to contain the data & packages needed
 CLUSTER_TYPE = 'scheduler:8786'
 
 # Use LocalCluster if you are not going to build and deploy a Dask cluster
@@ -66,7 +69,7 @@ elif CLUSTER_TYPE == 'LocalCluster':
 
     cluster = LocalCluster(
         'climate-viewer',
-        n_workers = 4
+        n_workers = 2
     )
     client = Client(cluster)
 elif CLUSTER_TYPE.startswith('scheduler'):
@@ -74,10 +77,18 @@ elif CLUSTER_TYPE.startswith('scheduler'):
 else:
     raise "Unknown cluster type"
 
-parent_dir = Path('data_files/mean/')
+# Try and download the files from Stratus if they don't exist
+# Skip if they do
+data_path = '/home/mambauser/app/LENS2-ncote-dashboard/data_files'
+isExist = os.path.exists(data_path)
+if isExist:
+    pass
+else:
+    get_data_files()
+
+parent_dir = Path('/home/mambauser/app/LENS2-ncote-dashboard/data_files/mean/')
 files = list(parent_dir.glob('*.nc'))
 print(*[f.name for f in files], sep=', ') 
-
 
 ds = xr.open_mfdataset(files, parallel=True)
 ds = ds.convert_calendar('standard')
@@ -90,7 +101,7 @@ ds = ds.rename({k:f"{ds[k].attrs['long_name']} ({ds[k].attrs.get('units', 'unitl
 if PERSIST_DATA:
     ds = ds.persist()
 print ('!!!!!!!!!!1')
-std_parent_dir = Path('data_files/std_dev/')
+std_parent_dir = Path('/home/mambauser/app/LENS2-ncote-dashboard/data_files/std_dev/')
 files = list(std_parent_dir.glob("*.nc"))
 print (files)
 
@@ -144,6 +155,11 @@ DESCRIPTION = pn.pane.HTML("""
 <h3>Modeling and Uncertainty: </h3>
 <p>All models include uncertainty. This uncertainty is represented by the shaded area in the time-series chart above, which shows the ±1 standard deviation region, meaning approximately 68% of the data will be within this region. The darker line within the shaded areas shows an average, or most, likely expected outcome within the range of possibilities.  </p>
 <h3>Spatial Scale and Inputs: </h3>
+
+<h2>Monitor App Performance:</h2>
+<p>
+    <a href="https://ncote-lens2-demo.k8s.ucar.edu/dask-dashboard/status">Dask Diagnostic UI</a>
+</p>
 
 <h2>More Information on Earth System Modeling:</h2>
 <p>
@@ -541,6 +557,8 @@ class ClimateViewer(param.Parameterized):
             DESCRIPTION,
             align='center'
         )
+
+        template.header_background = '#1A658F'
 
         # Append a layout to the main area, to demonstrate the list-like API
         template.main.append(
