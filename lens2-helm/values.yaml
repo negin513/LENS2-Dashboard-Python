@@ -1,6 +1,6 @@
 webapp:
-  name: ncote-lens2-demo
-  group: ncote-lens2-demo
+  name: negins-lens2-demo
+  group: negins-lens2-demo
   condaEnv: lens2
   autoscale:
     minReplicaCount: 1
@@ -8,8 +8,8 @@ webapp:
     cpuAverageUtilization: 50
   path: /
   tls:
-    fqdn: ncote-lens2-demo.k8s.ucar.edu
-    secretName: incommon-cert-ncote-lens2-demo
+    fqdn: negins-lens2-demo.k8s.ucar.edu
+    secretName: incommon-cert-negins-lens2-demo
   container: 
     image: hub.k8s.ucar.edu/ncote/lens2-docker:2024-03-07.21.29
     imagePullPolicy: Always

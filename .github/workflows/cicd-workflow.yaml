@@ -4,7 +4,7 @@ name: LENS2 CICD Pipeline
 on: 
   push:
     branches:
-      - refactor_0815
+      - main
 
 
 jobs:
@@ -20,19 +20,19 @@ jobs:
       - name: Login to Harbor
         run: podman login hub.k8s.ucar.edu -u ncote -p ${{ secrets.NCOTE_HARBOR_LOGIN  }}
       - name: Build LENS2 image
-        run: podman build --format=docker -t hub.k8s.ucar.edu/ncote/lens2-docker:${{ steps.date.outputs.date }} .
+        run: podman build --format=docker -t hub.k8s.ucar.edu/negins/lens2-docker:${{ steps.date.outputs.date }} .
       - name: Build Dask image
-        run: podman build --format=docker -f Containerfile.dask -t hub.k8s.ucar.edu/ncote/dask-lens2:${{ steps.date.outputs.date }} .
+        run: podman build --format=docker -f Containerfile.dask -t hub.k8s.ucar.edu/negins/dask-lens2:${{ steps.date.outputs.date }} .
       - name: Push LENS2 image to Harbor
         run: podman push hub.k8s.ucar.edu/ncote/lens2-docker:${{ steps.date.outputs.date }}
       - name: Push LENS2-Dask image to Harbor
         run: podman push hub.k8s.ucar.edu/ncote/dask-lens2:${{ steps.date.outputs.date }}
       - name: Update Helm values.yaml with App image
         run: |
-          sed -i "/lens2-docker/ c\    image: hub.k8s.ucar.edu/ncote/lens2-docker:${{ steps.date.outputs.date }}" lens2-helm/values.yaml
+          sed -i "/lens2-docker/ c\    image: hub.k8s.ucar.edu/negins/lens2-docker:${{ steps.date.outputs.date }}" lens2-helm/values.yaml
       - name: Update Helm values.yaml with Dask image
         run: |
-          sed -i "/dask-lens2/ c\    image: hub.k8s.ucar.edu/ncote\/dask-lens2:${{ steps.date.outputs.date }}" lens2-helm/values.yaml
+          sed -i "/dask-lens2/ c\    image: hub.k8s.ucar.edu/negins\/dask-lens2:${{ steps.date.outputs.date }}" lens2-helm/values.yaml
       - name: Update Helm Chart.yaml
         run: |
           sed -i "/appVersion:/ c\appVersion: ${{ steps.date.outputs.date }}" lens2-helm/Chart.yaml
