@@ -43,5 +43,5 @@ jobs:
           git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
           git config --global user.name "$GITHUB_ACTOR"
           git commit -a -m "Update Helm chart via GH Actions"
-          git push -u origin refactor_0815
+          git push -u origin main
 
