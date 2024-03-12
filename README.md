@@ -1,8 +1,9 @@
-# SIParCS - Interactive visualization of climate data
+# Interactive LENS-2 Dashboard
 
 This repository hosts notebooks and code written to visualize the [CESM-LENS2](https://www.cesm.ucar.edu/community-projects/lens2) dataset.
 
 ## Running Locally
+
 ### Getting started
 
 1. Clone the repository:
@@ -34,7 +35,7 @@ or
 
 ## Serve the app from outside notebook:
 
-After creating and activating environment:
+After creating and activating the environment:
 
 1. In one terminal, start a dask scheduler
 
@@ -48,7 +49,7 @@ After creating and activating environment:
 
 `panel serve src/cesm-2-dashboard/app.py --allow-websocket-origin="*" --autoreload`
 
-### Using Docker Locally with seperate containers for dask
+### Using Docker Locally with separate containers for Dask
 ***Note:*** Make sure app.py has `CLUSTER_TYPE = 'scheduler:8786'` set before building the container image. 
 The commands used will pull from the ncote Docker Hub repository if you do not build locally.
 You can specify your own docker image names to replace anything that begins with `ncote/`
