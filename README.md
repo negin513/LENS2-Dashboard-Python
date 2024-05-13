@@ -2,6 +2,10 @@
 
 This repository hosts notebooks and code written to visualize the [CESM-LENS2](https://www.cesm.ucar.edu/community-projects/lens2) dataset.
 
+| GitHub Action | Status |
+| --- | --- |
+| LENS2 CICD Pipeline |  ![Build](https://github.com/NicholasCote/LENS2-Dashboard-Python/actions/workflows/cicd-workflow.yaml/badge.svg) |
+
 ## Running Locally
 
 ### Getting started
@@ -30,10 +34,6 @@ or
 5. Start a jupyterlab session and run the notebooks. Start jupyterlab session:
 
 `jupyter lab`
-
-
-
-
 
 ## Serve the app from outside notebook:
 
@@ -75,7 +75,7 @@ You can specify your own docker image names to replace anything that begins with
 
 4. Start the Web Application
 
-`docker run --network dask -p 5006:5006 ncote/lens2-docker`
+`docker run -e ENV_NAME=lens2 --network dask -p 5006:5006 ncote/lens2-docker`
 
 ## Running on Kubernetes (K8s)
 ### Push image to Container Registry
@@ -107,6 +107,7 @@ You can use and edit the values.yaml file to configure the Deployment for your e
 values.yaml file in this repository is configured to deploy to the NSF NCAR K8s cluster with information specific to me. Here is a list of values to update for a unique configuration:
 
   * `name:` & `group` : I set these to be the same value, a descriptive name for the application. 
+  * `condaEnv:` is the name of the conda environment to activate on launch
   * `tls:`
     - `fqdn:` is the unique URL used for the deployment. The NSF NCAR K8s cluster utilizes External DNS to create resolvable addresses in the `.k8s.ucar.edu` domain only.
     - `secretName:` is a K8s secret that stores the TLS certificate for your application. This needs to be unique for your FQDN. `cert-manager` will create a valid certificate for you if one does not already exist for your FQDN. `secretName:` should be utilized if you were to have multiple deployments for the same FQDN but different paths. In our example we deploy the main app and the Dask scheduler in the same file. You could technically split these up in to 2 different helm charts. Both would use the same `secretName:` as long as the `fqdn:` value was the same.
