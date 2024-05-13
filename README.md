@@ -4,7 +4,7 @@ This repository hosts notebooks and code written to visualize the [CESM-LENS2](h
 
 | GitHub Action | Status |
 | --- | --- |
-| LENS2 CICD Pipeline |  ![Build](https://github.com/NicholasCote/LENS2-Dashboard-Python/actions/workflows/cicd-workflow.yaml/badge.svg) |
+| LENS2 CICD Pipeline |  ![Build](https://github.com/negin513/LENS2-Dashboard-Python/actions/workflows/cicd-workflow.yaml/badge.svg) |
 
 ## Running Locally
 
